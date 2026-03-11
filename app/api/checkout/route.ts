@@ -11,11 +11,13 @@ function getStripe() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { cart, customer_name, customer_phone, customer_email } = body as {
+    const { cart, customer_name, customer_phone, customer_email, delivery_method, delivery_address } = body as {
       cart: CartItem[]
       customer_name: string
       customer_phone: string
       customer_email: string
+      delivery_method?: string
+      delivery_address?: string
     }
 
     if (!cart || cart.length === 0) {
@@ -50,6 +52,8 @@ export async function POST(req: NextRequest) {
         customer_name,
         customer_phone,
         customer_email,
+        delivery_method: delivery_method ?? 'pickup',
+        ...(delivery_address ? { delivery_address } : {}),
         // Compact format: "inventory_id:qty:price" joined by "|" — stays well under 500-char Stripe limit
         cart: cart.map((i) => `${i.inventory_id}:${i.quantity}:${i.price}`).join('|'),
       },
