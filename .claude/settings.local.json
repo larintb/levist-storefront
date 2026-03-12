@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Users\\\\larin\\\\Desktop\\\\new\\\\levist-storefront\" && npm run build 2>&1)",
+      "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npm install -D jest @testing-library/react @testing-library/jest-dom @testing-library/user-event jest-environment-jsdom @types/jest 2>&1)",
+      "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npm install -D @playwright/test 2>&1)",
+      "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npx playwright install --with-deps chromium 2>&1)",
+      "Bash(node -e \"const jest = require\\('/c/Users/larin/Desktop/new/levist-storefront/node_modules/jest-config'\\); console.log\\(Object.keys\\(jest\\).join\\('\\\\n'\\)\\)\" 2>&1 | head -20)",
+      "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npx jest --no-coverage 2>&1)",
+      "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npm install -D ts-node 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\larin\\\\Desktop\\\\new\\\\levist-storefront\" && npm install 2>&1 | tail -3)"
+    ]
+  }
+}

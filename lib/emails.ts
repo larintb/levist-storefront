@@ -14,96 +14,201 @@ interface SendOrderConfirmationParams {
   order_id: string
   items: OrderItem[]
   total: number
+  delivery_method: 'pickup' | 'delivery'
+  delivery_address?: string
 }
 
 interface SendOrderReadyParams {
   to: string
   customer_name: string
   order_id: string
+  delivery_method?: 'pickup' | 'delivery'
+  custom_message?: string
 }
 
 const fmt = (price: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
 
-// Email 1: Confirmación de pago — se envía automáticamente desde el webhook de Stripe
-export async function sendOrderConfirmation(params: SendOrderConfirmationParams) {
-  const { to, customer_name, order_id, items, total } = params
-  const resend = getResend()
+const STORE_LAT  = 25.860658
+const STORE_LON  = -97.521319
+const STORE_ADDR = 'Caracol 10, Acuario 2001, Matamoros, Tamaulipas'
+const STORE_REF  = 'Entre Calle 23 y Calle 25'
+const MAPS_URL   = `https://www.google.com/maps?q=${STORE_LAT},${STORE_LON}&z=17`
 
-  const itemsHtml = items
-    .map(
-      (item) => `
-      <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6;">
-          <strong style="font-size:13px; text-transform:uppercase;">${item.product_name}</strong><br/>
-          <span style="font-size:12px; color:#9ca3af;">${item.color} · Talla ${item.size}</span>
-        </td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align:center; font-size:13px;">
-          ×${item.quantity}
-        </td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #f3f4f6; text-align:right; font-size:13px; font-weight:bold;">
-          ${fmt(item.price_at_sale * item.quantity)}
-        </td>
-      </tr>`
-    )
-    .join('')
+function staticMapUrl(apiKey: string) {
+  const params = new URLSearchParams({
+    center:  `${STORE_LAT},${STORE_LON}`,
+    zoom:    '16',
+    size:    '560x200',
+    scale:   '2',
+    maptype: 'roadmap',
+    markers: `color:black|label:L|${STORE_LAT},${STORE_LON}`,
+    key:     apiKey,
+  })
+  return `https://maps.googleapis.com/maps/api/staticmap?${params}`
+}
+
+// ─── Shared pieces ────────────────────────────────────────────────────────────
+
+function emailHeader() {
+  return `
+    <div style="background:#000000; padding:32px 40px; display:flex; align-items:center; justify-content:space-between;">
+      <h1 style="color:#ffffff; margin:0; font-size:28px; font-weight:900; font-style:italic; letter-spacing:-1px;">LEVIST</h1>
+      <span style="color:#facc15; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:3px;">Uniformes</span>
+    </div>`
+}
+
+function emailFooter() {
+  return `
+    <div style="background:#111111; padding:28px 40px;">
+      <p style="color:#4b5563; font-size:11px; margin:0 0 6px; text-transform:uppercase; letter-spacing:1px;">
+        LEVIST Uniformes · Matamoros, Tamaulipas
+      </p>
+      <p style="color:#374151; font-size:11px; margin:0;">
+        Este correo es automático. Si tienes dudas escríbenos directamente por WhatsApp.
+      </p>
+    </div>`
+}
+
+function itemsTable(items: OrderItem[], total: number) {
+  const rows = items.map((item) => `
+    <tr>
+      <td style="padding:14px 0; border-bottom:1px solid #f3f4f6; vertical-align:top;">
+        <span style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; color:#111;">${item.product_name}</span><br/>
+        <span style="font-size:12px; color:#9ca3af; margin-top:2px; display:inline-block;">${item.color} &nbsp;·&nbsp; Talla ${item.size}</span>
+      </td>
+      <td style="padding:14px 0; border-bottom:1px solid #f3f4f6; text-align:center; font-size:13px; color:#374151; vertical-align:top;">
+        ×${item.quantity}
+      </td>
+      <td style="padding:14px 0; border-bottom:1px solid #f3f4f6; text-align:right; font-size:13px; font-weight:700; color:#111; vertical-align:top;">
+        ${fmt(item.price_at_sale * item.quantity)}
+      </td>
+    </tr>`).join('')
+
+  return `
+    <table style="width:100%; border-collapse:collapse; margin-bottom:4px;">
+      <thead>
+        <tr>
+          <th style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#9ca3af; padding-bottom:10px; text-align:left; border-bottom:2px solid #111;">Producto</th>
+          <th style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#9ca3af; padding-bottom:10px; text-align:center; border-bottom:2px solid #111;">Cant.</th>
+          <th style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#9ca3af; padding-bottom:10px; text-align:right; border-bottom:2px solid #111;">Precio</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="padding:18px 0 0; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:#111;">Total pagado</td>
+          <td style="padding:18px 0 0; text-align:right; font-size:20px; font-weight:900; color:#111;">${fmt(total)}</td>
+        </tr>
+      </tfoot>
+    </table>`
+}
+
+// ─── Email 1 — Confirmación de pedido ─────────────────────────────────────────
+
+export async function sendOrderConfirmation(params: SendOrderConfirmationParams) {
+  const { to, customer_name, order_id, items, total, delivery_method, delivery_address } = params
+  const resend  = getResend()
+  const shortId = order_id.slice(0, 8).toUpperCase()
+  const apiKey  = process.env.GOOGLE_PLACES_API_KEY ?? ''
+
+  // ── Sección de entrega según método ──────────────────────────────────────
+  const deliverySection = delivery_method === 'pickup' ? `
+    <!-- Recogida en tienda -->
+    <div style="margin-top:36px;">
+      <p style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:3px; color:#9ca3af; margin:0 0 16px;">
+        📍 Dónde recoger tu pedido
+      </p>
+
+      <!-- Mapa -->
+      <a href="${MAPS_URL}" target="_blank" style="display:block; margin-bottom:16px; border:1px solid #e5e7eb;">
+        <img
+          src="${staticMapUrl(apiKey)}"
+          alt="Mapa de la tienda"
+          width="560"
+          style="width:100%; max-width:560px; display:block;"
+        />
+      </a>
+
+      <!-- Dirección -->
+      <div style="background:#f9fafb; border-left:4px solid #facc15; padding:20px 24px; margin-bottom:16px;">
+        <p style="margin:0 0 4px; font-size:14px; font-weight:700; color:#111;">${STORE_ADDR}</p>
+        <p style="margin:0 0 12px; font-size:12px; color:#6b7280;">${STORE_REF}</p>
+        <p style="margin:0; font-size:12px; color:#374151; line-height:1.6;">
+          Cuando tu pedido esté listo recibirás un segundo correo avisándote. Solo preséntate con este correo o el número de pedido.
+        </p>
+      </div>
+
+      <!-- Botón mapa -->
+      <a href="${MAPS_URL}" target="_blank"
+         style="display:inline-block; background:#000; color:#fff; padding:12px 24px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:2px; text-decoration:none;">
+        Ver en Google Maps →
+      </a>
+    </div>
+  ` : `
+    <!-- Envío a domicilio -->
+    <div style="margin-top:36px;">
+      <p style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:3px; color:#9ca3af; margin:0 0 16px;">
+        🚚 Dirección de entrega
+      </p>
+      <div style="background:#f9fafb; border-left:4px solid #000; padding:20px 24px;">
+        <p style="margin:0 0 8px; font-size:14px; font-weight:700; color:#111; line-height:1.5;">
+          ${delivery_address ?? '—'}
+        </p>
+        <p style="margin:0; font-size:12px; color:#6b7280; line-height:1.6;">
+          En cuanto tu pedido esté listo y en camino recibirás un segundo correo de confirmación.
+        </p>
+      </div>
+    </div>
+  `
 
   const html = `
     <!DOCTYPE html>
     <html lang="es">
     <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-    <body style="margin:0; padding:0; background:#f9fafb; font-family: system-ui, -apple-system, sans-serif;">
-      <div style="max-width:600px; margin:40px auto; background:#ffffff;">
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family:system-ui,-apple-system,sans-serif;">
+      <div style="max-width:600px; margin:40px auto; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,.1);">
 
-        <!-- Header -->
-        <div style="background:#000000; padding:32px 40px;">
-          <h1 style="color:#ffffff; margin:0; font-size:28px; font-weight:900; font-style:italic; letter-spacing:-1px;">LEVIST</h1>
-        </div>
+        ${emailHeader()}
 
-        <!-- Body -->
         <div style="padding:40px;">
-          <div style="background:#facc15; display:inline-block; padding:4px 10px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:24px;">
-            Pago Confirmado ✓
+
+          <!-- Badge -->
+          <div style="display:inline-block; background:#facc15; padding:5px 12px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:28px;">
+            ✓ &nbsp;Pago Confirmado
           </div>
 
-          <h2 style="font-size:22px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px;">
+          <!-- Saludo -->
+          <h2 style="font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px; color:#111;">
             ¡Hola, ${customer_name}!
           </h2>
-          <p style="color:#6b7280; font-size:14px; margin:0 0 32px;">
-            Tu pedido ha sido confirmado y está siendo preparado.
+          <p style="color:#6b7280; font-size:14px; margin:0 0 8px; line-height:1.6;">
+            Recibimos tu pedido y el pago fue procesado exitosamente. 🎉
+          </p>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 36px; line-height:1.6;">
+            Número de pedido: <strong style="color:#111; font-family:monospace; font-size:15px;">#${shortId}</strong>
           </p>
 
-          <!-- Pedido -->
-          <h3 style="font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#9ca3af; margin:0 0 16px; border-bottom:2px solid #111; padding-bottom:8px;">
-            Resumen del Pedido #${order_id.slice(0, 8).toUpperCase()}
-          </h3>
+          <!-- Resumen -->
+          <p style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:3px; color:#9ca3af; margin:0 0 16px;">
+            🧾 Resumen del pedido
+          </p>
+          ${itemsTable(items, total)}
 
-          <table style="width:100%; border-collapse:collapse;">
-            ${itemsHtml}
-            <tr>
-              <td colspan="2" style="padding: 16px 0 0; font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:1px;">Total</td>
-              <td style="padding: 16px 0 0; text-align:right; font-size:16px; font-weight:900;">${fmt(total)}</td>
-            </tr>
-          </table>
+          <!-- Entrega -->
+          ${deliverySection}
 
-          <!-- Aviso recogida -->
-          <div style="margin-top:40px; background:#f9fafb; border-left:4px solid #facc15; padding:20px 24px;">
-            <p style="margin:0; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">
-              📍 Recogida en Tienda
-            </p>
-            <p style="margin:0; font-size:13px; color:#374151; line-height:1.6;">
-              <strong>Por el momento no contamos con servicio de envíos (próximamente).</strong><br/>
-              Cuando tu pedido esté listo recibirás un segundo correo. Puedes pasar a recogerlo en nuestra tienda en el horario de atención.
+          <!-- Mensaje de confianza -->
+          <div style="margin-top:36px; background:#fefce8; border:1px solid #fef08a; padding:18px 22px;">
+            <p style="margin:0; font-size:13px; color:#713f12; line-height:1.7;">
+              <strong>Estamos en esto juntos.</strong> Cualquier pregunta sobre tu pedido no dudes en contactarnos.
+              Nuestro equipo está siempre listo para ayudarte. 💛
             </p>
           </div>
+
         </div>
 
-        <!-- Footer -->
-        <div style="background:#111; padding:24px 40px;">
-          <p style="color:#6b7280; font-size:11px; margin:0; text-transform:uppercase; letter-spacing:1px;">
-            © ${new Date().getFullYear()} LEVIST Uniformes — Este es un correo automático, no responder.
-          </p>
-        </div>
+        ${emailFooter()}
       </div>
     </body>
     </html>
@@ -112,65 +217,72 @@ export async function sendOrderConfirmation(params: SendOrderConfirmationParams)
   await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `✓ Pedido confirmado – LEVIST Uniformes #${order_id.slice(0, 8).toUpperCase()}`,
+    subject: `✓ Pedido confirmado #${shortId} – LEVIST Uniformes`,
     html,
   })
 }
 
-// Email 2: Pedido listo para recoger — se envía manualmente desde el panel admin
-export async function sendOrderReady(params: SendOrderReadyParams) {
-  const { to, customer_name, order_id } = params
-  const resend = getResend()
+// ─── Email 3 — Pedido entregado ───────────────────────────────────────────────
+
+interface SendOrderDeliveredParams {
+  to: string
+  customer_name: string
+  order_id: string
+  delivery_method: 'pickup' | 'delivery'
+}
+
+export async function sendOrderDelivered(params: SendOrderDeliveredParams) {
+  const { to, customer_name, order_id, delivery_method } = params
+  const resend  = getResend()
+  const shortId = order_id.slice(0, 8).toUpperCase()
+  const isDelivery = delivery_method === 'delivery'
 
   const html = `
     <!DOCTYPE html>
     <html lang="es">
     <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-    <body style="margin:0; padding:0; background:#f9fafb; font-family: system-ui, -apple-system, sans-serif;">
-      <div style="max-width:600px; margin:40px auto; background:#ffffff;">
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family:system-ui,-apple-system,sans-serif;">
+      <div style="max-width:600px; margin:40px auto; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,.1);">
 
-        <!-- Header -->
-        <div style="background:#000000; padding:32px 40px;">
-          <h1 style="color:#ffffff; margin:0; font-size:28px; font-weight:900; font-style:italic; letter-spacing:-1px;">LEVIST</h1>
-        </div>
+        ${emailHeader()}
 
-        <!-- Body -->
         <div style="padding:40px;">
-          <div style="background:#facc15; display:inline-block; padding:4px 10px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:24px;">
-            Tu pedido está listo 🎉
+
+          <!-- Badge -->
+          <div style="display:inline-block; background:#16a34a; color:#ffffff; padding:5px 12px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:28px;">
+            ✓ &nbsp;Pedido Completado
           </div>
 
-          <h2 style="font-size:22px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px;">
-            ¡${customer_name}, tu pedido está listo!
+          <h2 style="font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px; color:#111;">
+            ¡Gracias, ${customer_name}!
           </h2>
-          <p style="color:#6b7280; font-size:14px; margin:0 0 32px;">
-            Tu pedido <strong>#${order_id.slice(0, 8).toUpperCase()}</strong> ha sido preparado y está esperándote en nuestra tienda.
+          <p style="color:#6b7280; font-size:14px; margin:0 0 8px; line-height:1.6;">
+            Tu pedido <strong style="color:#111; font-family:monospace;">#${shortId}</strong>
+            ${isDelivery ? 'ha sido entregado.' : 'fue recogido exitosamente.'}
+          </p>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 36px; line-height:1.6;">
+            Esperamos que disfrutes tu compra. 🎉
           </p>
 
-          <div style="background:#f9fafb; border-left:4px solid #000; padding:20px 24px;">
-            <p style="margin:0; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">
-              📍 Instrucciones de Recogida
+          <!-- Mensaje cálido -->
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:24px; margin-bottom:28px;">
+            <p style="margin:0; font-size:14px; color:#15803d; line-height:1.8; font-weight:700;">
+              Tu pedido está completo. ¡Gracias por confiar en LEVIST!
             </p>
-            <p style="margin:0; font-size:13px; color:#374151; line-height:1.6;">
-              Puedes pasar a recoger tu pedido en nuestra tienda durante el horario de atención.<br/><br/>
-              Presenta este correo o el número de pedido al llegar:<br/>
-              <strong style="font-size:16px; font-family:monospace;">#${order_id.slice(0, 8).toUpperCase()}</strong>
+            <p style="margin:8px 0 0; font-size:13px; color:#166534; line-height:1.7;">
+              Si tienes alguna duda o necesitas algo más, no dudes en contactarnos. Siempre estamos aquí para ayudarte. 💛
             </p>
           </div>
 
-          <div style="margin-top:24px; background:#fef9c3; padding:16px 20px;">
-            <p style="margin:0; font-size:12px; color:#713f12;">
-              <strong>Nota:</strong> Actualmente no contamos con servicio de envíos (próximamente disponible). Los pedidos solo se entregan en tienda.
-            </p>
+          <!-- Número de pedido -->
+          <div style="background:#f9fafb; border-left:4px solid #facc15; padding:16px 24px;">
+            <p style="margin:0 0 4px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#9ca3af;">Número de pedido</p>
+            <p style="margin:0; font-family:monospace; font-size:20px; font-weight:900; color:#111;">#${shortId}</p>
           </div>
+
         </div>
 
-        <!-- Footer -->
-        <div style="background:#111; padding:24px 40px;">
-          <p style="color:#6b7280; font-size:11px; margin:0; text-transform:uppercase; letter-spacing:1px;">
-            © ${new Date().getFullYear()} LEVIST Uniformes — Este es un correo automático, no responder.
-          </p>
-        </div>
+        ${emailFooter()}
       </div>
     </body>
     </html>
@@ -179,7 +291,180 @@ export async function sendOrderReady(params: SendOrderReadyParams) {
   await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: `Tu pedido está listo para recoger – LEVIST #${order_id.slice(0, 8).toUpperCase()}`,
+    subject: `✓ Pedido completado #${shortId} – LEVIST Uniformes`,
+    html,
+  })
+}
+
+// ─── Email 2 — Pedido listo ───────────────────────────────────────────────────
+
+export async function sendOrderReady(params: SendOrderReadyParams) {
+  const { to, customer_name, order_id, delivery_method = 'pickup', custom_message } = params
+  const resend  = getResend()
+  const shortId = order_id.slice(0, 8).toUpperCase()
+  const apiKey  = process.env.GOOGLE_PLACES_API_KEY ?? ''
+  const isDelivery = delivery_method === 'delivery'
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family:system-ui,-apple-system,sans-serif;">
+      <div style="max-width:600px; margin:40px auto; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,.1);">
+
+        ${emailHeader()}
+
+        <div style="padding:40px;">
+
+          <!-- Badge -->
+          <div style="display:inline-block; background:#000; color:#facc15; padding:5px 12px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:28px;">
+            🎉 &nbsp;¡Tu pedido está listo!
+          </div>
+
+          <h2 style="font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px; color:#111;">
+            ${isDelivery ? `¡${customer_name}, tu pedido está en camino!` : `¡${customer_name}, ya puedes pasar!`}
+          </h2>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 8px; line-height:1.6;">
+            Tu pedido <strong style="color:#111; font-family:monospace;">#${shortId}</strong>
+            ${isDelivery ? 'ha salido y está en camino a tu domicilio.' : 'está listo y esperándote en nuestra tienda.'}
+          </p>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 36px; line-height:1.6;">
+            ${isDelivery ? 'Pronto lo recibirás en tu puerta.' : 'Solo preséntate con este correo o el número de pedido al llegar.'}
+          </p>
+
+          ${custom_message ? `
+          <!-- Mensaje personalizado del equipo -->
+          <div style="margin-bottom:28px; background:#fefce8; border-left:4px solid #facc15; padding:18px 24px;">
+            <p style="margin:0 0 6px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#713f12;">
+              💬 Mensaje de nuestro equipo
+            </p>
+            <p style="margin:0; font-size:14px; color:#111; line-height:1.7;">${custom_message}</p>
+          </div>
+          ` : ''}
+
+          ${!isDelivery ? `
+          <!-- Mapa tienda -->
+          <p style="font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:3px; color:#9ca3af; margin:0 0 16px;">
+            📍 Dónde recogemos
+          </p>
+          <a href="${MAPS_URL}" target="_blank" style="display:block; margin-bottom:16px; border:1px solid #e5e7eb;">
+            <img src="${staticMapUrl(apiKey)}" alt="Mapa de la tienda" width="560" style="width:100%; max-width:560px; display:block;" />
+          </a>
+          <div style="background:#f9fafb; border-left:4px solid #facc15; padding:20px 24px; margin-bottom:20px;">
+            <p style="margin:0 0 4px; font-size:14px; font-weight:700; color:#111;">${STORE_ADDR}</p>
+            <p style="margin:0 0 16px; font-size:12px; color:#6b7280;">${STORE_REF}</p>
+            <p style="margin:0; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:#111;">
+              Número de pedido: <span style="font-family:monospace; font-size:16px;">#${shortId}</span>
+            </p>
+          </div>
+          <a href="${MAPS_URL}" target="_blank"
+             style="display:inline-block; background:#000; color:#fff; padding:12px 24px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:2px; text-decoration:none;">
+            Ver en Google Maps →
+          </a>
+          ` : `
+          <!-- Número de pedido para envíos -->
+          <div style="background:#f9fafb; border-left:4px solid #000; padding:20px 24px; margin-bottom:20px;">
+            <p style="margin:0 0 8px; font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:#111;">
+              Número de pedido
+            </p>
+            <p style="margin:0; font-family:monospace; font-size:22px; font-weight:900; color:#111;">#${shortId}</p>
+          </div>
+          `}
+
+          <!-- Mensaje cálido -->
+          <div style="margin-top:36px; background:#fefce8; border:1px solid #fef08a; padding:18px 22px;">
+            <p style="margin:0; font-size:13px; color:#713f12; line-height:1.7;">
+              ${isDelivery ? '¡Gracias por tu compra! Cualquier duda estamos aquí para ayudarte. 💛' : '¡Gracias por confiar en nosotros! Esperamos verte pronto. 💛'}
+            </p>
+          </div>
+
+        </div>
+
+        ${emailFooter()}
+      </div>
+    </body>
+    </html>
+  `
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: isDelivery
+      ? `📦 Tu pedido está en camino – LEVIST #${shortId}`
+      : `🎉 Tu pedido está listo para recoger – LEVIST #${shortId}`,
+    html,
+  })
+}
+
+// ─── Email 4 — Back in stock ──────────────────────────────────────────────────
+
+interface SendBackInStockParams {
+  to: string
+  product_name: string
+  color: string
+  product_id: string
+}
+
+export async function sendBackInStockEmail(params: SendBackInStockParams) {
+  const { to, product_name, color, product_id } = params
+  const resend   = getResend()
+  const href     = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://levist.mx'}/catalogo/${product_id}`
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family:system-ui,-apple-system,sans-serif;">
+      <div style="max-width:600px; margin:40px auto; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,.1);">
+
+        ${emailHeader()}
+        <div style="height:4px; background:#facc15;"></div>
+
+        <div style="padding:40px;">
+
+          <div style="display:inline-block; background:#000; color:#facc15; padding:5px 12px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:28px;">
+            🔔 &nbsp;¡Ya está disponible!
+          </div>
+
+          <h2 style="font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px; color:#111;">
+            Tu producto favorito volvió
+          </h2>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 28px; line-height:1.6;">
+            El producto que estabas esperando ya tiene stock disponible. ¡No te quedes sin él!
+          </p>
+
+          <div style="background:#f9fafb; border-left:4px solid #facc15; padding:20px 24px; margin-bottom:28px;">
+            <p style="margin:0 0 4px; font-size:16px; font-weight:900; color:#111; text-transform:uppercase; letter-spacing:0.3px;">
+              ${product_name}
+            </p>
+            <p style="margin:0; font-size:13px; color:#6b7280; text-transform:uppercase; letter-spacing:1px;">
+              Color: ${color}
+            </p>
+          </div>
+
+          <a href="${href}" target="_blank"
+             style="display:inline-block; background:#000000; color:#ffffff; padding:14px 32px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:2px; text-decoration:none; margin-bottom:32px;">
+            Ver producto →
+          </a>
+
+          <div style="border-top:1px solid #f3f4f6; margin-top:8px; padding-top:24px;">
+            <p style="margin:0; font-size:12px; color:#9ca3af; line-height:1.6;">
+              Recibiste este correo porque pediste ser notificado cuando este producto volviera a estar disponible.
+            </p>
+          </div>
+
+        </div>
+
+        ${emailFooter()}
+      </div>
+    </body>
+    </html>
+  `
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `🔔 ¡${product_name} (${color}) ya está disponible! – LEVIST`,
     html,
   })
 }

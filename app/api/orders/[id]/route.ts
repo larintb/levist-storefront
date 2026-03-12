@@ -1,35 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase'
-import { sendOrderReady } from '@/lib/emails'
+import { sendOrderReady, sendOrderDelivered } from '@/lib/emails'
 
-function checkAdminSecret(req: NextRequest) {
-  const secret = process.env.ADMIN_SECRET
-  const provided = req.headers.get('x-admin-secret') ?? req.nextUrl.searchParams.get('secret')
-  return !secret || provided === secret
+async function getAuthUser() {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
 }
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!checkAdminSecret(req)) {
+  const user = await getAuthUser()
+  if (!user) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
   const { id: orderId } = await params
-  const { status } = await req.json() as { status: string }
+  const body = await req.json() as { status: string; custom_message?: string }
+  const { status, custom_message } = body
 
-  const validStatuses = ['paid', 'ready', 'picked_up', 'cancelled']
+  const validStatuses = ['paid', 'ready', 'shipped', 'picked_up', 'cancelled']
   if (!validStatuses.includes(status)) {
     return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
   }
 
   const client = createServiceClient()
 
-  // Obtener la orden antes de actualizar (necesitamos email y nombre)
   const { data: order, error: fetchError } = await client
     .from('orders')
-    .select('id, customer_name, customer_email, status')
+    .select('id, customer_name, customer_email, status, delivery_method, delivery_address')
     .eq('id', orderId)
     .single()
 
@@ -37,7 +50,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
   }
 
-  // Actualizar estado
   const { error: updateError } = await client
     .from('orders')
     .update({ status })
@@ -47,17 +59,32 @@ export async function PATCH(
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  // Si cambia a "ready" → enviar email de "listo para recoger"
-  if (status === 'ready' && order.customer_email) {
+  // Email: listo para recoger / en camino
+  if ((status === 'ready' || status === 'shipped') && order.customer_email) {
     try {
       await sendOrderReady({
-        to:            order.customer_email,
-        customer_name: order.customer_name,
-        order_id:      orderId,
+        to:              order.customer_email,
+        customer_name:   order.customer_name,
+        order_id:        orderId,
+        delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
+        custom_message:  custom_message || undefined,
       })
     } catch (emailErr) {
       console.error('Ready email failed:', emailErr)
-      // No-fatal
+    }
+  }
+
+  // Email: pedido completado / entregado
+  if (status === 'picked_up' && order.customer_email) {
+    try {
+      await sendOrderDelivered({
+        to:              order.customer_email,
+        customer_name:   order.customer_name,
+        order_id:        orderId,
+        delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
+      })
+    } catch (emailErr) {
+      console.error('Delivered email failed:', emailErr)
     }
   }
 

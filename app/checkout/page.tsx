@@ -5,9 +5,17 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { getCart, getCartTotal } from '@/lib/cart'
 import type { CartItem } from '@/types/product'
-import AddressAutocomplete from '@/components/AddressAutocomplete'
+import DeliveryAddressForm, { formatAddress } from '@/components/DeliveryAddressForm'
+import type { DeliveryAddress } from '@/components/DeliveryAddressForm'
 
 type DeliveryMethod = 'pickup' | 'delivery'
+
+type CouponData = {
+  code: string
+  discount_type: 'percentage' | 'fixed'
+  discount_value: number
+  discount_amount: number
+}
 
 const STORE_LAT = 25.860658261552587 //25.860658261552587, -97.52131975816589
 const STORE_LON = -97.52131975816589
@@ -21,7 +29,13 @@ export default function CheckoutPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ customer_name: '', customer_phone: '', customer_email: '' })
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup')
-  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>({
+    calle: '', colonia: '', cp: '', referencias: '',
+  })
+  const [couponInput, setCouponInput] = useState('')
+  const [coupon, setCoupon] = useState<CouponData | null>(null)
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -33,7 +47,33 @@ export default function CheckoutPage() {
   const fmt = (price: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
 
-  const total = getCartTotal(cart)
+  const subtotal = getCartTotal(cart)
+  const total = Math.max(0, subtotal - (coupon?.discount_amount ?? 0))
+
+  async function validateCoupon() {
+    const code = couponInput.trim()
+    if (!code) return
+    setCouponLoading(true)
+    setCouponError('')
+    setCoupon(null)
+    try {
+      const res = await fetch('/api/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCouponError(data.error ?? 'Código no válido')
+      } else {
+        setCoupon(data)
+      }
+    } catch {
+      setCouponError('Error al verificar el código')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,9 +81,19 @@ export default function CheckoutPage() {
       setError('Por favor completa todos los campos.')
       return
     }
-    if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
-      setError('Por favor ingresa tu dirección de entrega.')
-      return
+    if (deliveryMethod === 'delivery') {
+      if (!deliveryAddress.calle.trim()) {
+        setError('Por favor ingresa la calle y número.')
+        return
+      }
+      if (!deliveryAddress.colonia.trim()) {
+        setError('Por favor ingresa la colonia.')
+        return
+      }
+      if (!deliveryAddress.cp.trim()) {
+        setError('Por favor ingresa el código postal.')
+        return
+      }
     }
     setError('')
     setLoading(true)
@@ -57,7 +107,9 @@ export default function CheckoutPage() {
           customer_phone: form.customer_phone,
           customer_email: form.customer_email,
           delivery_method: deliveryMethod,
-          delivery_address: deliveryMethod === 'delivery' ? deliveryAddress : undefined,
+          delivery_address: deliveryMethod === 'delivery' ? formatAddress(deliveryAddress) : undefined,
+          coupon_code: coupon?.code ?? undefined,
+          discount_amount: coupon?.discount_amount ?? 0,
         }),
       })
       const data = await res.json()
@@ -188,14 +240,13 @@ export default function CheckoutPage() {
               />
             </div>
 
-            {/* Address field — delivery only */}
+            {/* Address fields — delivery only */}
             {deliveryMethod === 'delivery' && (
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-                  Dirección de entrega *{' '}
-                  <span className="normal-case font-normal">(Matamoros, Tamaulipas)</span>
-                </label>
-                <AddressAutocomplete value={deliveryAddress} onChange={setDeliveryAddress} />
+              <div className="border-t border-gray-100 pt-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-5">
+                  Dirección de entrega <span className="normal-case font-normal">(Matamoros, Tamaulipas)</span>
+                </p>
+                <DeliveryAddressForm value={deliveryAddress} onChange={setDeliveryAddress} />
               </div>
             )}
 
@@ -279,8 +330,66 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
+          {/* Código de descuento */}
           <div className="border-t border-gray-100 mt-6 pt-6">
-            <div className="flex justify-between font-black text-sm uppercase tracking-widest">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
+              Código de descuento
+            </p>
+            {coupon ? (
+              <div className="flex items-center justify-between bg-gray-50 border border-gray-200 px-3 py-2.5">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-black">{coupon.code}</p>
+                  <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                    {coupon.discount_type === 'percentage'
+                      ? `${coupon.discount_value}% de descuento`
+                      : `${fmt(coupon.discount_value)} de descuento`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setCoupon(null); setCouponInput(''); setCouponError('') }}
+                  className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), validateCoupon())}
+                  placeholder="CÓDIGO"
+                  className="flex-1 border-b-2 border-gray-300 pb-1.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-black transition-colors placeholder:text-gray-300"
+                />
+                <button
+                  type="button"
+                  onClick={validateCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className="text-[10px] font-black uppercase tracking-widest text-black hover:text-gray-500 disabled:text-gray-300 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {couponLoading ? '...' : 'Aplicar'}
+                </button>
+              </div>
+            )}
+            {couponError && (
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-2">{couponError}</p>
+            )}
+          </div>
+
+          <div className="border-t border-gray-100 mt-6 pt-6 flex flex-col gap-2">
+            <div className="flex justify-between text-xs text-gray-500 font-bold uppercase tracking-widest">
+              <span>Subtotal</span>
+              <span>{fmt(subtotal)}</span>
+            </div>
+            {coupon && (
+              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-green-600">
+                <span>Descuento</span>
+                <span>-{fmt(coupon.discount_amount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-black text-sm uppercase tracking-widest border-t border-gray-100 pt-2 mt-1">
               <span>Total</span>
               <span>{fmt(total)}</span>
             </div>

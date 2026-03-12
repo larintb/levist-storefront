@@ -11,13 +11,15 @@ function getStripe() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { cart, customer_name, customer_phone, customer_email, delivery_method, delivery_address } = body as {
+    const { cart, customer_name, customer_phone, customer_email, delivery_method, delivery_address, coupon_code, discount_amount } = body as {
       cart: CartItem[]
       customer_name: string
       customer_phone: string
       customer_email: string
       delivery_method?: string
       delivery_address?: string
+      coupon_code?: string
+      discount_amount?: number
     }
 
     if (!cart || cart.length === 0) {
@@ -43,17 +45,32 @@ export async function POST(req: NextRequest) {
       quantity: item.quantity,
     }))
 
+    // Apply coupon discount via Stripe
+    let stripeCouponId: string | undefined
+    if (coupon_code && discount_amount && discount_amount > 0) {
+      const stripeCoupon = await stripe.coupons.create({
+        amount_off: Math.round(discount_amount * 100),
+        currency: 'mxn',
+        duration: 'once',
+        name: `Descuento: ${coupon_code}`,
+      })
+      stripeCouponId = stripeCoupon.id
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
       customer_email: customer_email || undefined,
+      ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
       metadata: {
         customer_name,
         customer_phone,
         customer_email,
         delivery_method: delivery_method ?? 'pickup',
         ...(delivery_address ? { delivery_address } : {}),
+        ...(coupon_code ? { discount_code: coupon_code } : {}),
+        ...(discount_amount ? { discount_amount: String(discount_amount) } : {}),
         // Compact format: "inventory_id:qty:price" joined by "|" — stays well under 500-char Stripe limit
         cart: cart.map((i) => `${i.inventory_id}:${i.quantity}:${i.price}`).join('|'),
       },

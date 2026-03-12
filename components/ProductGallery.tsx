@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import type { ProductVariant } from '@/types/product'
 
@@ -12,6 +12,12 @@ interface Props {
 export default function ProductGallery({ variants, selectedVariantKey }: Props) {
   const initial = variants.find((v) => v.variant_key === selectedVariantKey) ?? variants[0]
   const [activeImage, setActiveImage] = useState(initial?.image_url ?? null)
+
+  // Sync image when the selected color changes from the parent
+  useEffect(() => {
+    const variant = variants.find((v) => v.variant_key === selectedVariantKey)
+    if (variant?.image_url) setActiveImage(variant.image_url)
+  }, [selectedVariantKey, variants])
 
   return (
     <div className="flex flex-col gap-3">

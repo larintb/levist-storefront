@@ -30,6 +30,7 @@ export interface ProductVariant {
   color: string
   image_url: string | null
   sizes: ProductSize[]
+  in_stock: boolean   // true si al menos 1 talla tiene stock suficiente
 }
 
 export interface Product {

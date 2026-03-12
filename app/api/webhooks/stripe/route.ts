@@ -29,9 +29,13 @@ export async function POST(req: NextRequest) {
     const metadata = session.metadata
     if (!metadata) return NextResponse.json({ error: 'No metadata' }, { status: 400 })
 
-    const customer_name  = metadata.customer_name
-    const customer_phone = metadata.customer_phone
-    const customer_email = metadata.customer_email ?? session.customer_details?.email ?? ''
+    const customer_name    = metadata.customer_name
+    const customer_phone   = metadata.customer_phone
+    const customer_email   = metadata.customer_email ?? session.customer_details?.email ?? ''
+    const delivery_method  = (metadata.delivery_method ?? 'pickup') as 'pickup' | 'delivery'
+    const delivery_address = metadata.delivery_address
+    const discount_code    = metadata.discount_code ?? null
+    const discount_amount  = metadata.discount_amount ? Number(metadata.discount_amount) : 0
 
     // Compact cart format: "inventory_id:qty:price|..."
     type CompactItem = { inventory_id: string; quantity: number; price: number }
@@ -78,6 +82,7 @@ export async function POST(req: NextRequest) {
     })
 
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const total = Math.max(0, subtotal - discount_amount)
 
     // Crear orden
     const { data: order, error: orderError } = await client
@@ -89,10 +94,13 @@ export async function POST(req: NextRequest) {
         payment_method: 'stripe',
         status: 'paid',
         subtotal,
-        discount_amount: 0,
-        total: subtotal,
+        discount_amount,
+        discount_code,
+        total,
         user_id: null,
         school_id: null,
+        delivery_method,
+        delivery_address: delivery_address ?? null,
       })
       .select('id')
       .single()
@@ -119,6 +127,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Items insert failed' }, { status: 500 })
     }
 
+    // Incrementar uso del código de descuento
+    if (discount_code) {
+      await client.rpc('increment_coupon_uses', { p_code: discount_code })
+    }
+
     // Reducir stock
     for (const item of cart) {
       const { error } = await client.rpc('decrement_stock', {
@@ -142,7 +155,9 @@ export async function POST(req: NextRequest) {
             quantity:      i.quantity,
             price_at_sale: i.price,
           })),
-          total: subtotal,
+          total,
+          delivery_method,
+          delivery_address,
         })
       } catch (emailErr) {
         // No-fatal: loguear pero no fallar el webhook

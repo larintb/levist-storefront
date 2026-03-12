@@ -42,6 +42,37 @@ html {
   color: white;
 }
 
+/* Nav panel animations */
+@keyframes navFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes navFadeLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes navFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes navPanelExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+.nav-anim-heading {
+  animation: navFadeLeft 0.25s ease both;
+}
+.nav-anim-item {
+  animation: navFadeUp 0.22s ease both;
+}
+.nav-anim-image {
+  animation: navFadeIn 0.35s ease both;
+}
+.nav-panel-exit {
+  animation: navPanelExit 0.18s ease forwards;
+  pointer-events: none;
+}
+
 /* Mega menu */
 .mega-menu {
   display: none;

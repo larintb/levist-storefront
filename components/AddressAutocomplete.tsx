@@ -2,27 +2,48 @@
 
 import { useState, useEffect, useRef } from 'react'
 
-interface NominatimResult {
-  place_id: number
-  display_name: string
+export interface ParsedAddress {
+  calle: string
+  colonia: string
+  cp: string
 }
 
-interface AddressAutocompleteProps {
+interface Suggestion {
+  placeId: string
+  mainText: string
+  secondaryText: string
+}
+
+interface Props {
   value: string
   onChange: (value: string) => void
+  onSelect: (parsed: ParsedAddress) => void
 }
 
-export default function AddressAutocomplete({ value, onChange }: AddressAutocompleteProps) {
-  const [query, setQuery] = useState(value)
-  const [results, setResults] = useState<NominatimResult[]>([])
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+function getComponent(
+  components: { longText: string; types: string[] }[],
+  ...types: string[]
+): string {
+  return components.find((c) => types.some((t) => c.types.includes(t)))?.longText ?? ''
+}
 
+export default function AddressAutocomplete({ value, onChange, onSelect }: Props) {
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [open, setOpen]               = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [activeIdx, setActiveIdx]     = useState(-1)
+  const [error, setError]             = useState('')
+
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const listRef     = useRef<HTMLUListElement>(null)
+  const inputRef    = useRef<HTMLInputElement>(null)
+
+  // Debounce → fetch suggestions
   useEffect(() => {
-    if (query.length < 3) {
-      setResults([])
+    setError('')
+    if (value.length < 4) {
+      setSuggestions([])
       setOpen(false)
       return
     }
@@ -30,60 +51,114 @@ export default function AddressAutocomplete({ value, onChange }: AddressAutocomp
     timerRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const params = new URLSearchParams({
-          q: `${query}, Matamoros, Tamaulipas`,
-          countrycodes: 'mx',
-          format: 'json',
-          limit: '6',
-          // bounding box around Matamoros, Tamaulipas
-          viewbox: '-97.7,25.7,-97.3,26.1',
-          bounded: '1',
-        })
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?${params}`,
-          { headers: { 'Accept-Language': 'es' } }
-        )
-        const data: NominatimResult[] = await res.json()
-        setResults(data)
-        if (data.length > 0) setOpen(true)
+        const res  = await fetch(`/api/places?input=${encodeURIComponent(value)}`)
+        const data = await res.json()
+
+        if (!res.ok) {
+          setError(data.error ?? 'Error al buscar')
+          setSuggestions([])
+          return
+        }
+
+        const items: Suggestion[] = (data.suggestions ?? []).map((s: {
+          placePrediction: {
+            placeId: string
+            text: { text: string }
+            structuredFormat?: {
+              mainText: { text: string }
+              secondaryText?: { text: string }
+            }
+          }
+        }) => ({
+          placeId: s.placePrediction.placeId,
+          mainText:
+            s.placePrediction.structuredFormat?.mainText?.text ??
+            s.placePrediction.text.text,
+          secondaryText:
+            s.placePrediction.structuredFormat?.secondaryText?.text ?? '',
+        }))
+
+        setSuggestions(items)
+        setOpen(items.length > 0)
       } catch {
-        setResults([])
+        setError('Error de conexión')
+        setSuggestions([])
       } finally {
         setLoading(false)
       }
-    }, 450)
-  }, [query])
+    }, 400)
+  }, [value])
 
+  // Scroll al item activo
   useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+    if (!listRef.current || activeIdx < 0) return
+    ;(listRef.current.children[activeIdx] as HTMLElement | undefined)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [activeIdx])
+
+  // Cerrar al click fuera
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
   }, [])
 
-  function selectResult(r: NominatimResult) {
-    setQuery(r.display_name)
-    onChange(r.display_name)
+  async function pick(s: Suggestion) {
     setOpen(false)
-    setResults([])
+    setSuggestions([])
+    onChange(s.mainText)
+
+    try {
+      const res  = await fetch(`/api/places?placeId=${s.placeId}`)
+      const data = await res.json()
+      const comps: { longText: string; types: string[] }[] = data.addressComponents ?? []
+
+      const route        = getComponent(comps, 'route')
+      const streetNumber = getComponent(comps, 'street_number')
+      const colonia      = getComponent(comps, 'sublocality_level_1', 'sublocality', 'neighborhood')
+      const cp           = getComponent(comps, 'postal_code')
+      const calle        = [route, streetNumber].filter(Boolean).join(' ') || s.mainText
+
+      onSelect({ calle, colonia, cp })
+    } catch {
+      onSelect({ calle: s.mainText, colonia: '', cp: '' })
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!open) {
+      if (e.key === 'ArrowDown') { setOpen(true); e.preventDefault() }
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (activeIdx >= 0 && suggestions[activeIdx]) pick(suggestions[activeIdx])
+    } else if (e.key === 'Escape') {
+      setOpen(false); setActiveIdx(-1); inputRef.current?.blur()
+    }
   }
 
   return (
     <div ref={containerRef} className="relative">
+
+      {/* Input */}
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            onChange(e.target.value)
-          }}
-          onFocus={() => results.length > 0 && setOpen(true)}
-          placeholder="Calle, número, colonia…"
-          className="w-full border-b-2 border-gray-300 pb-2 pr-16 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+          value={value}
+          autoComplete="off"
+          placeholder="Ej. Calle Morelos 210, Matamoros"
+          onChange={(e) => { onChange(e.target.value); setActiveIdx(-1) }}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onKeyDown={handleKeyDown}
+          className="w-full border-b-2 border-gray-300 pb-2 pr-20 text-sm font-bold focus:outline-none focus:border-black transition-colors bg-transparent"
         />
         {loading && (
           <span className="absolute right-0 top-0 text-[9px] font-black uppercase tracking-widest text-gray-400 animate-pulse">
@@ -92,17 +167,40 @@ export default function AddressAutocomplete({ value, onChange }: AddressAutocomp
         )}
       </div>
 
-      {open && results.length > 0 && (
-        <ul className="absolute z-50 top-full left-0 right-0 bg-white border border-gray-200 shadow-xl max-h-60 overflow-y-auto mt-1">
-          {results.map((r) => (
+      {/* Error */}
+      {error && (
+        <p className="mt-1 text-[10px] font-bold text-red-500">{error}</p>
+      )}
+
+      {/* Dropdown */}
+      {open && suggestions.length > 0 && (
+        <ul
+          ref={listRef}
+          className="absolute z-50 top-full left-0 right-0 bg-white border border-gray-200 shadow-xl max-h-64 overflow-y-auto mt-1"
+        >
+          {suggestions.map((s, i) => (
             <li
-              key={r.place_id}
-              onMouseDown={() => selectResult(r)}
-              className="px-4 py-3 text-[11px] font-medium cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-0 leading-snug"
+              key={s.placeId}
+              onMouseDown={(e) => { e.preventDefault(); pick(s) }}
+              onMouseEnter={() => setActiveIdx(i)}
+              className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-0 ${
+                i === activeIdx ? 'bg-black text-white' : 'hover:bg-gray-50'
+              }`}
             >
-              {r.display_name}
+              <p className={`text-[11px] font-bold ${i === activeIdx ? 'text-white' : 'text-gray-900'}`}>
+                {s.mainText}
+              </p>
+              {s.secondaryText && (
+                <p className={`text-[10px] mt-0.5 ${i === activeIdx ? 'text-gray-300' : 'text-gray-400'}`}>
+                  {s.secondaryText}
+                </p>
+              )}
             </li>
           ))}
+          <li className="px-3 py-1.5 bg-gray-50 flex justify-end">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" height={14} style={{ height: 14 }} />
+          </li>
         </ul>
       )}
     </div>
