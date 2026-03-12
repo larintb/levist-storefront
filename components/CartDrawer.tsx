@@ -26,9 +26,7 @@ export default function CartDrawer() {
       const detail = (e as CustomEvent<AddedItem>).detail
       setAddedItem(detail)
       setToastVisible(false)
-      // Next frame: trigger enter transition
       requestAnimationFrame(() => requestAnimationFrame(() => setToastVisible(true)))
-      // Start exit after 2.5s, remove from DOM after transition completes
       setTimeout(() => setToastVisible(false), 2500)
       setTimeout(() => setAddedItem(null), 2900)
     }
@@ -48,7 +46,7 @@ export default function CartDrawer() {
 
   return (
     <>
-      {/* Trigger + tooltip */}
+      {/* Trigger */}
       <div className="relative">
         <button
           onClick={() => setOpen(true)}
@@ -65,7 +63,7 @@ export default function CartDrawer() {
           )}
         </button>
 
-        {/* Added to cart toast — fixed a la pantalla */}
+        {/* Toast */}
         {addedItem && (
           <div
             className="fixed bottom-6 right-6 z-[200] w-72 bg-[#364458] text-white rounded-2xl shadow-2xl pointer-events-none overflow-hidden"
@@ -87,7 +85,6 @@ export default function CartDrawer() {
                 <p className="text-[10px] text-white/40 mt-0.5">{addedItem.color} · Talla {addedItem.size}</p>
               </div>
             </div>
-            {/* Barra de progreso */}
             <div className="h-0.5 bg-white/10">
               <div
                 className="h-full bg-[#8AA7C4]"
@@ -101,19 +98,35 @@ export default function CartDrawer() {
         )}
       </div>
 
-      {/* Backdrop invisible para cerrar al click fuera */}
+      {/* Backdrop — semi-opaco en mobile, invisible en desktop */}
       {open && (
-        <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black/50 sm:bg-transparent"
+          onClick={() => setOpen(false)}
+        />
       )}
 
-      {/* Drawer */}
+      {/* Drawer
+          Mobile:  bottom sheet, full-width, slides up from bottom
+          Desktop: dropdown, 340px, slides down from top-right
+      */}
       <div
-        className={`fixed top-[72px] right-4 w-[340px] max-h-[82vh] bg-[#364458] z-50 flex flex-col rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)] overflow-hidden transition-[opacity,visibility,transform] duration-300 ease-in-out ${
-          open ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-3'
-        }`}
+        className={`fixed z-50 flex flex-col bg-[#364458] shadow-[0_-8px_40px_rgba(0,0,0,0.4)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.35)] overflow-hidden
+          transition-[opacity,visibility,transform] duration-300 ease-in-out
+          inset-x-0 bottom-0 max-h-[92vh] rounded-t-2xl
+          sm:inset-x-auto sm:bottom-auto sm:top-[72px] sm:right-4 sm:w-[340px] sm:max-h-[98vh] sm:rounded-2xl
+          ${open
+            ? 'opacity-100 visible translate-y-0'
+            : 'opacity-0 invisible translate-y-full sm:translate-y-[-12px]'
+          }`}
       >
+        {/* Drag handle — solo mobile */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5">
+        <div className="flex items-center justify-between px-6 py-4 sm:py-5 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
               <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,10 +148,11 @@ export default function CartDrawer() {
         </div>
 
         {/* Divider */}
-        <div className="mx-6 h-px bg-white/10" />
+        <div className="mx-6 h-px bg-white/10 flex-shrink-0" />
 
-        {/* Items */}
-        <div className="overflow-y-auto px-6 py-4 flex flex-col gap-4 max-h-[50vh]">
+        {/* Items + recomendaciones — flex-1 para ocupar espacio disponible entre header y footer */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="px-6 py-4 flex flex-col gap-4">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
               <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
@@ -158,7 +172,7 @@ export default function CartDrawer() {
           ) : (
             cart.map((item) => (
               <div key={item.inventory_id} className="flex gap-3 bg-white/5 rounded-xl p-3">
-                <div className="relative w-14 h-18 rounded-lg bg-white/10 flex-shrink-0 overflow-hidden" style={{ height: '72px' }}>
+                <div className="relative w-14 flex-shrink-0 rounded-lg bg-white/10 overflow-hidden" style={{ height: '72px' }}>
                   {item.image_url ? (
                     <Image src={item.image_url} alt={item.product_name} fill className="object-cover" sizes="56px" />
                   ) : (
@@ -166,7 +180,11 @@ export default function CartDrawer() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight">{item.product_name}</p>
+                  <Link
+                    href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
+                    onClick={() => setOpen(false)}
+                    className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight hover:text-[#8AA7C4] transition-colors"
+                  >{item.product_name}</Link>
                   <p className="text-[10px] text-[#8AA7C4] mt-1">{item.color} · Talla {item.size}</p>
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-sm font-black text-white">{fmt(item.price)}</p>
@@ -194,12 +212,13 @@ export default function CartDrawer() {
           )}
         </div>
 
-        {/* Complete Your Fit */}
+        {/* Complete Your Fit — dentro del scroll */}
         {cart.length > 0 && <CompleteYourFit cartItems={cart} onCartUpdate={refresh} />}
+        </div>{/* fin flex-1 scroll */}
 
         {/* Footer */}
         {cart.length > 0 && (
-          <div className="px-6 pb-6 pt-4 flex flex-col gap-3">
+          <div className="px-6 pb-6 pt-4 flex flex-col gap-3 flex-shrink-0">
             <div className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-3">
               <span className="text-xs font-bold uppercase tracking-widest text-[#8AA7C4]">Subtotal</span>
               <span className="text-base font-black text-white">{fmt(total)}</span>

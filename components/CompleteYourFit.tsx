@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import type { CartItem } from '@/types/product'
 import type { FitProduct } from '@/app/api/complete-fit/route'
 import { addToCart } from '@/lib/cart'
@@ -68,9 +69,10 @@ function FitCard({
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-tight line-clamp-2 text-white leading-tight">
-            {product.product_name}
-          </p>
+          <Link
+            href={`/catalogo/${product.product_id}?color=${encodeURIComponent(product.color)}`}
+            className="text-[10px] font-black uppercase tracking-tight line-clamp-2 text-white leading-tight hover:text-[#8AA7C4] transition-colors"
+          >{product.product_name}</Link>
           <div className="flex flex-wrap gap-1 mt-1.5">
             {product.sizes.map(s => (
               <button
@@ -152,7 +154,7 @@ export default function CompleteYourFit({ cartItems, onCartUpdate }: Props) {
       setLabel('Complete Your Fit')
       fetch(`/api/complete-fit?find=pant&color=${encodeURIComponent(trigger.color)}&exclude=${trigger.product_id}`)
         .then(r => r.json())
-        .then((data: FitProduct | null) => setProducts(data ? [data] : []))
+        .then((data: FitProduct[]) => setProducts(Array.isArray(data) ? data : []))
         .catch(() => setProducts([]))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

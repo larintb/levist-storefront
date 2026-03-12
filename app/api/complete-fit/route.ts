@@ -23,8 +23,66 @@ export interface FitProduct {
   sizes: { inventory_id: string; size: string; price: number; stock: number }[]
 }
 
-type Row = { product_id: string; product_name: string; product_image: string | null; color: string; size: string; price: number; stock: number; inventory_id: string }
+type Row = {
+  product_id: string
+  product_name: string
+  product_image: string | null
+  color: string
+  size: string
+  price: number
+  stock: number
+  inventory_id: string
+  brand: string | null
+  collection: string | null
+}
 
+type SourceMeta = { brand: string | null; collection: string | null }
+
+async function getSourceMeta(supabase: ReturnType<typeof getSupabase>, sourceId: string): Promise<SourceMeta> {
+  const { data } = await supabase
+    .from(VIEW)
+    .select('brand, collection')
+    .eq('product_id', sourceId)
+    .limit(1)
+    .single()
+  return (data as SourceMeta | null) ?? { brand: null, collection: null }
+}
+
+// Groups rows by product_id, scores by brand/collection match, returns top N
+function groupTopProducts(data: Row[], sourceMeta: SourceMeta, max = 2): FitProduct[] {
+  if (!data.length) return []
+
+  const byId = new Map<string, Row[]>()
+  for (const row of data) {
+    if (!byId.has(row.product_id)) byId.set(row.product_id, [])
+    byId.get(row.product_id)!.push(row)
+  }
+
+  const scored = Array.from(byId.values()).map((rows) => {
+    const r = rows[0]
+    const sameBrand = sourceMeta.brand && r.brand &&
+      r.brand.toLowerCase() === sourceMeta.brand.toLowerCase()
+    const sameColl = sourceMeta.collection && r.collection &&
+      r.collection.toLowerCase() === sourceMeta.collection.toLowerCase()
+    const score = sameBrand && sameColl ? 2 : sameBrand ? 1 : 0
+    return { rows, score }
+  })
+
+  scored.sort((a, b) => b.score - a.score)
+
+  return scored.slice(0, max).map(({ rows }) => ({
+    product_id: rows[0].product_id,
+    product_name: rows[0].product_name,
+    image_url: rows[0].product_image,
+    color: rows[0].color,
+    min_price: Math.min(...rows.map(r => r.price)),
+    sizes: rows
+      .map(r => ({ inventory_id: r.inventory_id, size: r.size, price: r.price, stock: r.stock }))
+      .sort((a, b) => sizeSort(a.size, b.size)),
+  }))
+}
+
+// Returns only the first product (used for bata kit)
 function groupFirstProduct(data: Row[]): FitProduct | null {
   if (!data.length) return null
   const firstId = data[0].product_id
@@ -50,40 +108,47 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabase()
   const base = supabase
     .from(VIEW)
-    .select('product_id, product_name, product_image, color, size, price, stock, inventory_id')
+    .select('product_id, product_name, product_image, color, size, price, stock, inventory_id, brand, collection')
     .gt('stock', MIN_STOCK)
     .neq('color', 'ADO')
     .order('product_name')
 
-  let query = base
-
   if (find === 'pant') {
-    // Pantalón del mismo color que el top
-    if (!color) return NextResponse.json(null)
-    query = query.ilike('product_name', '%pant%').ilike('color', color)
+    // Pantalón del mismo color — prioriza misma marca+colección que el trigger
+    if (!color) return NextResponse.json([])
+    let query = base.ilike('product_name', '%pant%').ilike('color', color)
     if (exclude) query = query.neq('product_id', exclude)
+
+    const [{ data, error }, sourceMeta] = await Promise.all([
+      query,
+      exclude ? getSourceMeta(supabase, exclude) : Promise.resolve<SourceMeta>({ brand: null, collection: null }),
+    ])
+
+    if (error || !data || data.length === 0) return NextResponse.json([])
+    return NextResponse.json(groupTopProducts(data as Row[], sourceMeta, 2))
 
   } else if (find === 'white_pant') {
     // Pantalón blanco (para bata kit)
-    query = query.ilike('product_name', '%pant%').ilike('color', 'white')
+    let query = base.ilike('product_name', '%pant%').ilike('color', 'white')
     if (exclude) query = query.neq('product_id', exclude)
+    const { data, error } = await query
+    if (error || !data || data.length === 0) return NextResponse.json(null)
+    return NextResponse.json(groupFirstProduct(data as Row[]))
 
   } else if (find === 'white_top') {
-    // Filipina blanca (no pant, no bata/lab coat, no set)
-    query = query
+    // Filipina blanca (para bata kit)
+    let query = base
       .not('product_name', 'ilike', '%pant%')
       .not('product_name', 'ilike', '%bata%')
       .not('product_name', 'ilike', '%lab coat%')
       .not('product_name', 'ilike', '%set%')
       .ilike('color', 'white')
     if (exclude) query = query.neq('product_id', exclude)
+    const { data, error } = await query
+    if (error || !data || data.length === 0) return NextResponse.json(null)
+    return NextResponse.json(groupFirstProduct(data as Row[]))
 
   } else {
     return NextResponse.json(null)
   }
-
-  const { data, error } = await query
-  if (error || !data || data.length === 0) return NextResponse.json(null)
-
-  return NextResponse.json(groupFirstProduct(data as Row[]))
 }

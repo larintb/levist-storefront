@@ -60,7 +60,10 @@ export default function CartPage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="font-black text-xs uppercase tracking-tight">{item.product_name}</p>
+                <Link
+                  href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
+                  className="font-black text-xs uppercase tracking-tight hover:text-[#364458]/60 transition-colors"
+                >{item.product_name}</Link>
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">
                   {item.color} · Talla {item.size}
                 </p>
