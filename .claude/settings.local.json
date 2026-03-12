@@ -8,7 +8,10 @@
       "Bash(node -e \"const jest = require\\('/c/Users/larin/Desktop/new/levist-storefront/node_modules/jest-config'\\); console.log\\(Object.keys\\(jest\\).join\\('\\\\n'\\)\\)\" 2>&1 | head -20)",
       "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npx jest --no-coverage 2>&1)",
       "Bash(cd /c/Users/larin/Desktop/new/levist-storefront && npm install -D ts-node 2>&1)",
-      "Bash(cd \"C:\\\\Users\\\\larin\\\\Desktop\\\\new\\\\levist-storefront\" && npm install 2>&1 | tail -3)"
+      "Bash(cd \"C:\\\\Users\\\\larin\\\\Desktop\\\\new\\\\levist-storefront\" && npm install 2>&1 | tail -3)",
+      "Bash(grep -n \"bg-\\\\[#364458\\\\]\\\\|bg-\\\\[#2F3F55\\\\]\\\\|bg-\\\\[#8AA7C4\\\\]\" \\\\\n  \"C:/Users/larin/Desktop/new/levist-storefront/app/admin/\\(protected\\)/layout.tsx\" | head -20\ngrep -n \"bg-\\\\[#364458\\\\]\\\\|#364458\\\\|#2F3F55\" \\\\\n  \"C:/Users/larin/Desktop/new/levist-storefront/components/Footer.tsx\" | head -10)",
+      "Bash(sed -i 's/hover:bg-\\\\[#364458\\\\]/hover:bg-[#2F3F55]/g' \\\\\n  \"C:/Users/larin/Desktop/new/levist-storefront/app/admin/\\(protected\\)/layout.tsx\"\nsed -i 's/bg-\\\\[#364458\\\\] text-white pt-20/bg-[#2F3F55] text-white pt-20/' \\\\\n  \"C:/Users/larin/Desktop/new/levist-storefront/components/Footer.tsx\"\necho \"✓ fixed\")",
+      "Bash(grep -rn \"bg-black\\\\|bg-yellow-400\\\\|bg-gray-900\\\\|border-black\\\\|hover:bg-black\\\\|hover:bg-gray-800\" \\\\\n  --include=\"*.tsx\" --include=\"*.ts\" \\\\\n  --exclude-dir=\".claude\" \\\\\n  --exclude-dir=\"node_modules\" \\\\\n  \"C:/Users/larin/Desktop/new/levist-storefront/\" 2>/dev/null | grep -v \"worktrees\" | head -20)"
     ]
   }
 }

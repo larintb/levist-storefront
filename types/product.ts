@@ -59,10 +59,13 @@ export interface CartItem {
   image_url: string | null
 }
 
+export type SortOption = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc'
+
 export interface CatalogFilters {
   category?: string
   color?: string
   collection?: string
   brand?: string
   search?: string
+  sort?: SortOption
 }

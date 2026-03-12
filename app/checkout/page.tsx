@@ -10,6 +10,9 @@ import type { DeliveryAddress } from '@/components/DeliveryAddressForm'
 
 type DeliveryMethod = 'pickup' | 'delivery'
 
+const SHIPPING_COST = 99        // MXN — cambiar según tarifa real
+const FREE_SHIPPING_MIN = 750   // coincide con el announcement bar
+
 type CouponData = {
   code: string
   discount_type: 'percentage' | 'fixed'
@@ -39,16 +42,30 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true)
-    const c = getCart()
-    if (c.length === 0) { router.replace('/carrito'); return }
-    setCart(c)
+
+    function syncCart() {
+      const c = getCart()
+      if (c.length === 0) { router.replace('/carrito'); return }
+      setCart(c)
+    }
+
+    syncCart()
+    window.addEventListener('cart-updated', syncCart)
+    window.addEventListener('storage', syncCart)
+    return () => {
+      window.removeEventListener('cart-updated', syncCart)
+      window.removeEventListener('storage', syncCart)
+    }
   }, [router])
 
   const fmt = (price: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
 
   const subtotal = getCartTotal(cart)
-  const total = Math.max(0, subtotal - (coupon?.discount_amount ?? 0))
+  const afterCoupon = Math.max(0, subtotal - (coupon?.discount_amount ?? 0))
+  const shippingCost = deliveryMethod === 'delivery' && subtotal < FREE_SHIPPING_MIN ? SHIPPING_COST : 0
+  const freeShipping = deliveryMethod === 'delivery' && subtotal >= FREE_SHIPPING_MIN
+  const total = afterCoupon + shippingCost
 
   async function validateCoupon() {
     const code = couponInput.trim()
@@ -110,6 +127,7 @@ export default function CheckoutPage() {
           delivery_address: deliveryMethod === 'delivery' ? formatAddress(deliveryAddress) : undefined,
           coupon_code: coupon?.code ?? undefined,
           discount_amount: coupon?.discount_amount ?? 0,
+          shipping_amount: shippingCost,
         }),
       })
       const data = await res.json()
@@ -143,13 +161,13 @@ export default function CheckoutPage() {
             onClick={() => setDeliveryMethod('pickup')}
             className={`group flex flex-col items-center gap-3 py-6 px-4 border-2 transition-all cursor-pointer ${
               deliveryMethod === 'pickup'
-                ? 'border-black bg-black text-white'
+                ? 'border-[#364458] bg-[#364458] text-white'
                 : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
             }`}
           >
             {/* Store icon */}
             <svg
-              className={`w-7 h-7 ${deliveryMethod === 'pickup' ? 'text-white' : 'text-gray-500 group-hover:text-black'} transition-colors`}
+              className={`w-7 h-7 ${deliveryMethod === 'pickup' ? 'text-white' : 'text-gray-500 group-hover:text-[#364458]'} transition-colors`}
               fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.75L12 3l9 6.75V21H3V9.75z" />
@@ -169,13 +187,13 @@ export default function CheckoutPage() {
             onClick={() => setDeliveryMethod('delivery')}
             className={`group flex flex-col items-center gap-3 py-6 px-4 border-2 transition-all cursor-pointer ${
               deliveryMethod === 'delivery'
-                ? 'border-black bg-black text-white'
+                ? 'border-[#364458] bg-[#364458] text-white'
                 : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
             }`}
           >
             {/* Delivery truck icon */}
             <svg
-              className={`w-7 h-7 ${deliveryMethod === 'delivery' ? 'text-white' : 'text-gray-500 group-hover:text-black'} transition-colors`}
+              className={`w-7 h-7 ${deliveryMethod === 'delivery' ? 'text-white' : 'text-gray-500 group-hover:text-[#364458]'} transition-colors`}
               fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 18H3V8l5-4h8l4 4v6h-4" />
@@ -210,7 +228,7 @@ export default function CheckoutPage() {
                 value={form.customer_name}
                 onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
                 required
-                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -223,7 +241,7 @@ export default function CheckoutPage() {
                 value={form.customer_email}
                 onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
                 required
-                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -236,7 +254,7 @@ export default function CheckoutPage() {
                 value={form.customer_phone}
                 onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
                 required
-                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -270,7 +288,7 @@ export default function CheckoutPage() {
                   href={`https://www.google.com/maps?q=${STORE_LAT},${STORE_LON}&z=16&label=${STORE_LABEL}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors"
+                  className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#364458] transition-colors"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -290,10 +308,10 @@ export default function CheckoutPage() {
                 type="submit"
                 disabled={loading}
                 className={`w-full py-5 text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${
-                  loading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'
+                  loading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#364458] text-white hover:bg-[#2F3F55]'
                 }`}
               >
-                {loading ? 'Procesando...' : `Pagar ${fmt(total)}`}
+                {loading ? 'Procesando...' : `Pagar ${fmt(total)}${freeShipping ? ' · Envío Gratis 🚚' : ''}`}
               </button>
               <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,7 +366,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => { setCoupon(null); setCouponInput(''); setCouponError('') }}
-                  className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
+                  className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
                 >
                   Quitar
                 </button>
@@ -361,7 +379,7 @@ export default function CheckoutPage() {
                   onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError('') }}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), validateCoupon())}
                   placeholder="CÓDIGO"
-                  className="flex-1 border-b-2 border-gray-300 pb-1.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-black transition-colors placeholder:text-gray-300"
+                  className="flex-1 border-b-2 border-gray-300 pb-1.5 text-xs font-bold uppercase tracking-widest focus:outline-none focus:border-[#364458] transition-colors placeholder:text-gray-300"
                 />
                 <button
                   type="button"
@@ -383,12 +401,37 @@ export default function CheckoutPage() {
               <span>Subtotal</span>
               <span>{fmt(subtotal)}</span>
             </div>
+
             {coupon && (
               <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-green-600">
-                <span>Descuento</span>
+                <span>Descuento ({coupon.code})</span>
                 <span>-{fmt(coupon.discount_amount)}</span>
               </div>
             )}
+
+            {/* Envío */}
+            {deliveryMethod === 'delivery' && (
+              freeShipping ? (
+                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-600">Envío</span>
+                    <span className="text-[9px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-full tracking-widest">
+                      Gratis +$750
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="line-through text-gray-300">{fmt(SHIPPING_COST)}</span>
+                    <span className="text-green-600">$0.00</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-gray-500">
+                  <span>Envío</span>
+                  <span>{fmt(SHIPPING_COST)}</span>
+                </div>
+              )
+            )}
+
             <div className="flex justify-between font-black text-sm uppercase tracking-widest border-t border-gray-100 pt-2 mt-1">
               <span>Total</span>
               <span>{fmt(total)}</span>

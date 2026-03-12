@@ -7,6 +7,7 @@ export const revalidate = 300
 
 interface PageProps {
   params: Promise<{ product: string }>
+  searchParams: Promise<{ color?: string }>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -30,8 +31,9 @@ export async function generateStaticParams() {
   return products.map((p) => ({ product: p.product_id }))
 }
 
-export default async function ProductPage({ params }: PageProps) {
+export default async function ProductPage({ params, searchParams }: PageProps) {
   const { product: productId } = await params
+  const { color } = await searchParams
   const product = await getProductById(productId)
   if (!product) notFound()
 
@@ -39,14 +41,14 @@ export default async function ProductPage({ params }: PageProps) {
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Breadcrumb */}
       <nav className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-8 flex gap-2 flex-wrap">
-        <a href="/" className="hover:text-black transition-colors">Inicio</a>
+        <a href="/" className="hover:text-[#364458] transition-colors">Inicio</a>
         <span>/</span>
-        <a href="/catalogo" className="hover:text-black transition-colors">Catálogo</a>
+        <a href="/catalogo" className="hover:text-[#364458] transition-colors">Catálogo</a>
         <span>/</span>
         <span className="text-black truncate">{product.product_name}</span>
       </nav>
 
-      <ProductPageClient product={product} />
+      <ProductPageClient product={product} initialColor={color} />
     </div>
   )
 }

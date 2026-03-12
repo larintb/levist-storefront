@@ -32,7 +32,7 @@ export default function NewsletterPopup() {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-[#364458]/60 z-[2000] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && close()}
     >
       <div className="bg-white w-full max-w-2xl relative flex flex-col md:flex-row overflow-hidden shadow-2xl">
@@ -49,14 +49,14 @@ export default function NewsletterPopup() {
         <div className="w-full md:w-1/2 p-10 flex flex-col justify-center text-center relative">
           <button
             onClick={close}
-            className="absolute top-4 right-4 text-xl cursor-pointer text-gray-400 hover:text-black"
+            className="absolute top-4 right-4 text-xl cursor-pointer text-gray-400 hover:text-[#364458]"
           >
             ✕
           </button>
 
           {submitted ? (
             <div className="flex flex-col items-center gap-3 py-8">
-              <div className="w-12 h-12 bg-yellow-400 flex items-center justify-center">
+              <div className="w-12 h-12 bg-[#8AA7C4] flex items-center justify-center">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
@@ -81,12 +81,12 @@ export default function NewsletterPopup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="border-b-2 border-black w-full py-2 text-xs font-bold uppercase tracking-widest focus:outline-none placeholder:text-gray-400"
+                  className="border-b-2 border-[#364458] w-full py-2 text-xs font-bold uppercase tracking-widest focus:outline-none placeholder:text-gray-400"
                 />
                 <select
                   value={job}
                   onChange={(e) => setJob(e.target.value)}
-                  className="border-b-2 border-black w-full py-2 text-xs font-bold uppercase tracking-widest focus:outline-none bg-transparent text-gray-700"
+                  className="border-b-2 border-[#364458] w-full py-2 text-xs font-bold uppercase tracking-widest focus:outline-none bg-transparent text-gray-700"
                 >
                   <option value="">SELECCIONA TU PROFESIÓN</option>
                   <option value="doctor">Doctor/a</option>
@@ -98,7 +98,7 @@ export default function NewsletterPopup() {
 
                 <button
                   type="submit"
-                  className="w-full bg-black text-white py-4 font-black uppercase text-xs tracking-widest hover:bg-gray-800 transition-colors mt-2"
+                  className="w-full bg-[#364458] text-white py-4 font-black uppercase text-xs tracking-widest hover:bg-[#2F3F55] transition-colors mt-2"
                 >
                   Registrarme
                 </button>
@@ -106,7 +106,7 @@ export default function NewsletterPopup() {
 
               <button
                 onClick={close}
-                className="mt-4 text-[10px] font-bold underline uppercase tracking-widest text-gray-400 hover:text-black cursor-pointer"
+                className="mt-4 text-[10px] font-bold underline uppercase tracking-widest text-gray-400 hover:text-[#364458] cursor-pointer"
               >
                 No, gracias
               </button>

@@ -32,7 +32,7 @@ export default function CollapsibleFilterSection({ title, items, limit = 5 }: Pr
             <Link
               href={item.href}
               className={`block text-xs py-0.5 transition-colors ${
-                item.active ? 'font-black text-black underline' : 'text-gray-500 hover:text-black font-bold'
+                item.active ? 'font-black text-black underline' : 'text-gray-500 hover:text-[#364458] font-bold'
               }`}
             >
               {item.label}
@@ -43,7 +43,7 @@ export default function CollapsibleFilterSection({ title, items, limit = 5 }: Pr
       {hasMore && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
+          className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
         >
           {expanded ? 'Ver menos ↑' : `+${items.length - limit} más`}
         </button>

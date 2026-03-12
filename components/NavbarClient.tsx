@@ -19,6 +19,7 @@ export default function NavbarClient({ categories, brands, collections }: Props)
   const [isExiting, setIsExiting] = useState(false)
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [proximamente, setProximamente] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
 
   // Maneja animación de entrada/salida del panel
@@ -74,7 +75,7 @@ export default function NavbarClient({ categories, brands, collections }: Props)
       <button
         onClick={() => toggle(panel)}
         className={`font-bold text-xs uppercase tracking-wide h-full flex items-center gap-1.5 transition-colors cursor-pointer border-b-2 ${
-          isOpen ? 'border-black text-black' : 'border-transparent text-gray-600 hover:text-black'
+          isOpen ? 'border-[#364458] text-[#364458]' : 'border-transparent text-gray-600 hover:text-[#364458]'
         }`}
       >
         {label}
@@ -141,12 +142,17 @@ export default function NavbarClient({ categories, brands, collections }: Props)
   return (
     <>
       {/* Announcement Bar */}
-      <div className="bg-black text-white text-xs font-bold py-2 px-4 flex justify-between items-center">
+      <div className="bg-[#364458] text-white text-xs font-bold py-2 px-4 flex justify-between items-center">
         <div className="flex-1 text-center tracking-widest uppercase">
           Envío gratis en pedidos de +$750 —{' '}
           <Link href="/catalogo" className="underline">Comprar Ahora</Link>
         </div>
-        <div className="hidden md:block text-[10px] uppercase tracking-widest">Mi Cuenta</div>
+        <button
+          onClick={() => setProximamente(true)}
+          className="hidden md:block text-[10px] uppercase tracking-widest cursor-pointer hover:text-[#364458] transition-colors"
+        >
+          Mi Cuenta
+        </button>
       </div>
 
       {/* Header */}
@@ -172,7 +178,7 @@ export default function NavbarClient({ categories, brands, collections }: Props)
             <Link
               href="/pedidos"
               onClick={() => setActive(null)}
-              className="font-bold text-xs uppercase tracking-wide text-gray-600 hover:text-black transition-colors h-full flex items-center border-b-2 border-transparent hover:border-black"
+              className="font-bold text-xs uppercase tracking-wide text-gray-600 hover:text-[#364458] transition-colors h-full flex items-center border-b-2 border-transparent hover:border-[#364458]"
             >
               Pedidos
             </Link>
@@ -200,9 +206,9 @@ export default function NavbarClient({ categories, brands, collections }: Props)
               onClick={() => setMobileOpen(o => !o)}
               aria-label="Menú"
             >
-              <span className={`block w-6 h-0.5 bg-black transition-all duration-200 ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`block w-6 h-0.5 bg-black transition-all duration-200 ${mobileOpen ? 'opacity-0' : ''}`} />
-              <span className={`block w-6 h-0.5 bg-black transition-all duration-200 ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+              <span className={`block w-6 h-0.5 bg-[#364458] transition-all duration-200 ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
+              <span className={`block w-6 h-0.5 bg-[#364458] transition-all duration-200 ${mobileOpen ? 'opacity-0' : ''}`} />
+              <span className={`block w-6 h-0.5 bg-[#364458] transition-all duration-200 ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
             </button>
           </div>
         </div>
@@ -223,10 +229,10 @@ export default function NavbarClient({ categories, brands, collections }: Props)
 
                     {/* Nombre gigante de sección */}
                     <div className="flex-shrink-0 w-40 nav-anim-heading">
-                      <p className="text-5xl font-black italic tracking-tighter leading-none text-black">
+                      <p className="text-5xl font-black italic tracking-tighter leading-none text-[#364458]">
                         {panel.heading}
                       </p>
-                      <div className="w-8 h-1 bg-yellow-400 mt-3" />
+                      <div className="w-8 h-1 bg-[#8AA7C4] mt-3" />
                     </div>
 
                     {/* Columnas de links */}
@@ -246,8 +252,8 @@ export default function NavbarClient({ categories, brands, collections }: Props)
                               onClick={() => setActive(null)}
                               className={`nav-anim-item text-sm transition-colors py-0.5 ${
                                 link.bold
-                                  ? 'font-black uppercase tracking-widest text-black hover:text-gray-500 mt-2'
-                                  : 'font-medium text-gray-700 hover:text-black'
+                                  ? 'font-black uppercase tracking-widest text-[#364458] hover:text-gray-500 mt-2'
+                                  : 'font-medium text-gray-700 hover:text-[#364458]'
                               }`}
                               style={{ animationDelay: `${ci * 40 + li * 30 + 60}ms` }}
                             >
@@ -272,7 +278,7 @@ export default function NavbarClient({ categories, brands, collections }: Props)
                 </div>
 
                 {/* Barra amarilla de cierre */}
-                <div className="h-1 bg-yellow-400" />
+                <div className="h-1 bg-[#8AA7C4]" />
               </div>
             )}
           </div>
@@ -318,7 +324,7 @@ export default function NavbarClient({ categories, brands, collections }: Props)
                     key={c}
                     href={`/catalogo?category=${encodeURIComponent(c)}`}
                     onClick={() => setMobileOpen(false)}
-                    className="text-sm font-bold text-gray-600 hover:text-black transition-colors"
+                    className="text-sm font-bold text-gray-600 hover:text-[#364458] transition-colors"
                   >
                     {c}
                   </Link>
@@ -328,15 +334,47 @@ export default function NavbarClient({ categories, brands, collections }: Props)
           )}
         </nav>
 
-        <div className="h-1 bg-yellow-400" />
+        <div className="h-1 bg-[#8AA7C4]" />
       </div>
 
       {/* Overlay oscuro mobile */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/20 lg:hidden"
+          className="fixed inset-0 z-30 bg-[#364458]/20 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
+      )}
+
+      {/* Modal Próximamente */}
+      {proximamente && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#364458]/60 backdrop-blur-sm"
+          onClick={() => setProximamente(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-10 max-w-sm w-full text-center flex flex-col items-center gap-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-[#364458]/10 flex items-center justify-center">
+              <svg className="w-7 h-7 text-[#364458]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#8AA7C4] mb-1">Mi Cuenta</p>
+              <h2 className="text-3xl font-black italic tracking-tighter text-[#364458]">Próximamente</h2>
+              <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                Estamos trabajando en algo increíble.<br />¡Vuelve pronto!
+              </p>
+            </div>
+            <button
+              onClick={() => setProximamente(false)}
+              className="mt-2 px-8 py-3 bg-[#364458] text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#2F3F55] transition-colors cursor-pointer"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
       )}
     </>
   )

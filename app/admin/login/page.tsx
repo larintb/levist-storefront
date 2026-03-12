@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -87,7 +87,7 @@ export default function AdminLoginPage() {
               type="submit"
               disabled={loading}
               className={`w-full py-4 text-xs font-black uppercase tracking-widest transition-colors ${
-                loading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800 cursor-pointer'
+                loading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#364458] text-white hover:bg-[#2F3F55] cursor-pointer'
               }`}
             >
               {loading ? 'Entrando…' : 'Entrar'}

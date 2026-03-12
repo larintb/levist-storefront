@@ -10,16 +10,22 @@ body {
   color: var(--foreground);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
-/* Scrollbar minimalista */
-.custom-scrollbar::-webkit-scrollbar { height: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+/* Ocultar todos los scrollbars */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
 
 /* Line clamp */
 .line-clamp-1 {
@@ -37,8 +43,8 @@ html {
 
 /* Botones de talla activos */
 .size-btn-active {
-  border-color: black;
-  background: black;
+  border-color: #364458;
+  background: #364458;
   color: white;
 }
 

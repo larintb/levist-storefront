@@ -120,7 +120,7 @@ export default function DescuentosPage() {
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setMsg(null) }}
-          className="px-5 py-2.5 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors cursor-pointer"
+          className="px-5 py-2.5 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors cursor-pointer"
         >
           {showForm ? 'Cancelar' : '+ Nuevo código'}
         </button>
@@ -151,7 +151,7 @@ export default function DescuentosPage() {
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
                 placeholder="VERANO20"
-                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-black font-mono focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-black font-mono focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -166,7 +166,7 @@ export default function DescuentosPage() {
                     type="button"
                     onClick={() => setDiscountType(t)}
                     className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest border transition-colors cursor-pointer ${
-                      discountType === t ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-500 hover:border-black'
+                      discountType === t ? 'bg-[#364458] text-white border-[#364458]' : 'border-gray-200 text-gray-500 hover:border-[#364458]'
                     }`}
                   >
                     {t === 'percentage' ? '% Porcentaje' : '$ Monto fijo'}
@@ -192,7 +192,7 @@ export default function DescuentosPage() {
                   max={discountType === 'percentage' ? '100' : undefined}
                   step="0.01"
                   placeholder={discountType === 'percentage' ? '10' : '50'}
-                  className="flex-1 border-b-2 border-gray-200 pb-2 text-sm font-black focus:outline-none focus:border-black transition-colors"
+                  className="flex-1 border-b-2 border-gray-200 pb-2 text-sm font-black focus:outline-none focus:border-[#364458] transition-colors"
                 />
               </div>
             </div>
@@ -207,7 +207,7 @@ export default function DescuentosPage() {
                 onChange={e => setMaxUses(e.target.value)}
                 min="1"
                 placeholder="Sin límite"
-                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function DescuentosPage() {
                 type="datetime-local"
                 value={validFrom}
                 onChange={e => setValidFrom(e.target.value)}
-                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
             <div>
@@ -233,7 +233,7 @@ export default function DescuentosPage() {
                 type="datetime-local"
                 value={validUntil}
                 onChange={e => setValidUntil(e.target.value)}
-                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
           </div>
@@ -248,14 +248,14 @@ export default function DescuentosPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-3 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40"
+              className="px-6 py-3 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors cursor-pointer disabled:opacity-40"
             >
               {saving ? 'Guardando…' : 'Crear código'}
             </button>
             <button
               type="button"
               onClick={() => { setShowForm(false); resetForm() }}
-              className="px-6 py-3 border border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-black hover:text-black transition-colors cursor-pointer"
+              className="px-6 py-3 border border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
@@ -300,7 +300,7 @@ export default function DescuentosPage() {
                       <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-red-100 text-red-600">Expirado</span>
                     )}
                     {c.active && notStarted && (
-                      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-yellow-100 text-yellow-700">Pendiente</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-[#DDE6EF] text-[#364458]">Pendiente</span>
                     )}
                     {c.active && !expired && !notStarted && !exhausted && (
                       <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-green-100 text-green-700">Activo</span>
@@ -328,7 +328,7 @@ export default function DescuentosPage() {
                   <div className="flex gap-3 flex-shrink-0">
                     <button
                       onClick={() => handleToggle(c.id, c.active)}
-                      className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
+                      className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
                     >
                       {c.active ? 'Desactivar' : 'Activar'}
                     </button>

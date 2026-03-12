@@ -62,7 +62,7 @@ export default function OrderActions({ orderId, currentStatus, customerEmail, cu
           {(currentStatus === 'paid') && (
             <button
               onClick={() => setPanel('confirm')}
-              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-yellow-400 text-black hover:bg-yellow-300 transition-colors cursor-pointer"
+              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-[#8AA7C4] text-black hover:bg-[#7A9CBB] transition-colors cursor-pointer"
             >
               {actionLabel} →
             </button>
@@ -71,7 +71,7 @@ export default function OrderActions({ orderId, currentStatus, customerEmail, cu
             <button
               onClick={() => submit('picked_up')}
               disabled={loading}
-              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-black text-white hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-[#364458] text-white hover:bg-[#2F3F55] transition-colors cursor-pointer disabled:opacity-50"
             >
               {loading ? 'Procesando…' : '✓ Confirmar Entrega'}
             </button>
@@ -108,7 +108,7 @@ export default function OrderActions({ orderId, currentStatus, customerEmail, cu
             </div>
             <button
               onClick={() => { setPanel(null); setMessage('') }}
-              className="text-gray-400 hover:text-black text-lg leading-none flex-shrink-0 cursor-pointer"
+              className="text-gray-400 hover:text-[#364458] text-lg leading-none flex-shrink-0 cursor-pointer"
             >
               ✕
             </button>
@@ -128,7 +128,7 @@ export default function OrderActions({ orderId, currentStatus, customerEmail, cu
                   : 'Ej. Puedes pasar de lunes a viernes de 9am a 6pm. Pregunta por Karen.'
               }
               rows={3}
-              className="w-full border border-gray-200 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:border-black transition-colors resize-none"
+              className="w-full border border-gray-200 bg-white px-3 py-2 text-xs font-medium focus:outline-none focus:border-[#364458] transition-colors resize-none"
             />
             <p className="text-[9px] text-gray-400 mt-1">
               Si lo dejas vacío, el email incluye solo la información estándar del pedido.
@@ -141,14 +141,14 @@ export default function OrderActions({ orderId, currentStatus, customerEmail, cu
             <button
               onClick={() => submit(nextStatus)}
               disabled={loading}
-              className="px-5 py-2.5 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors cursor-pointer disabled:opacity-50"
             >
               {loading ? 'Enviando…' : `Confirmar y enviar email`}
             </button>
             <button
               onClick={() => { setPanel(null); setMessage('') }}
               disabled={loading}
-              className="px-5 py-2.5 border border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-black hover:text-black transition-colors cursor-pointer"
+              className="px-5 py-2.5 border border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer"
             >
               Cancelar
             </button>

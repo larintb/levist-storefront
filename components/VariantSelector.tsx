@@ -8,12 +8,19 @@ import { colorToHex } from '@/lib/colorToHex'
 
 interface Props {
   product: Product
+  initialVariantKey?: string
   onVariantChange?: (variantKey: string) => void
 }
 
-export default function VariantSelector({ product, onVariantChange }: Props) {
+export default function VariantSelector({ product, initialVariantKey, onVariantChange }: Props) {
   const router = useRouter()
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(product.variants[0])
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant>(() => {
+    if (initialVariantKey) {
+      const match = product.variants.find(v => v.variant_key === initialVariantKey)
+      if (match && match.color !== 'ADO') return match
+    }
+    return product.variants.find(v => v.color !== 'ADO') ?? product.variants[0]
+  })
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
@@ -107,6 +114,7 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
     setAdded(true)
     setQuantity(1)
     window.dispatchEvent(new Event('cart-updated'))
+    window.dispatchEvent(new CustomEvent('cart-added', { detail: { name: product.product_name, color: selectedVariant.color, size: selectedSize.size } }))
     setTimeout(() => setAdded(false), 2000)
   }
 
@@ -128,26 +136,30 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
           {product.variants.map((variant) => {
             const oos = !variant.in_stock
             const isSelected = variant.variant_key === selectedVariant.variant_key
+            const isAdo = variant.color === 'ADO'
             return (
               <button
                 key={variant.variant_key}
-                onClick={() => { setSelectedVariant(variant); onVariantChange?.(variant.variant_key) }}
-                title={oos ? `${variant.color} — Agotado` : variant.color}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wide border transition-all cursor-pointer ${
-                  isSelected
+                disabled={isAdo}
+                onClick={() => { if (!isAdo) { setSelectedVariant(variant); onVariantChange?.(variant.variant_key) } }}
+                title={isAdo ? 'No disponible' : oos ? `${variant.color} — Agotado` : variant.color}
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wide border transition-all ${
+                  isAdo
+                    ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                    : isSelected
                     ? oos
-                      ? 'border-gray-400 bg-gray-100 text-gray-500'
-                      : 'border-black bg-black text-white'
+                      ? 'border-gray-400 bg-gray-100 text-gray-500 cursor-pointer'
+                      : 'border-[#364458] bg-[#364458] text-white cursor-pointer'
                     : oos
-                    ? 'border-gray-200 text-gray-400 hover:border-gray-400'
-                    : 'border-gray-300 text-gray-700 hover:border-black'
+                    ? 'border-gray-200 text-gray-400 hover:border-gray-400 cursor-pointer'
+                    : 'border-gray-300 text-gray-700 hover:border-[#364458] cursor-pointer'
                 }`}
               >
                 <span
-                  className="w-3 h-3 rounded-full flex-shrink-0 border border-black/10"
-                  style={{ backgroundColor: colorToHex(variant.color), opacity: oos ? 0.5 : 1 }}
+                  className="w-3 h-3 rounded-full flex-shrink-0 border border-[#364458]/10"
+                  style={{ backgroundColor: colorToHex(variant.color), opacity: isAdo ? 0.2 : oos ? 0.5 : 1 }}
                 />
-                <span className={oos ? 'line-through' : ''}>{variant.color}</span>
+                <span className={isAdo ? 'line-through' : oos ? 'line-through' : ''}>{variant.color}</span>
               </button>
             )
           })}
@@ -163,8 +175,8 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
             </p>
           </div>
           {notifySent ? (
-            <div className="bg-yellow-50 border border-yellow-300 px-4 py-4">
-              <p className="text-xs font-black uppercase tracking-widest text-yellow-700">
+            <div className="bg-[#EEF2F6] border border-[#8AA7C4] px-4 py-4">
+              <p className="text-xs font-black uppercase tracking-widest text-[#364458]">
                 ✓ Te avisamos cuando esté disponible en {selectedVariant.color}
               </p>
             </div>
@@ -180,12 +192,12 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
                   value={notifyEmail}
                   onChange={(e) => setNotifyEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleNotify()}
-                  className="flex-1 border border-gray-300 px-3 py-3 text-xs focus:outline-none focus:border-black transition-colors"
+                  className="flex-1 border border-gray-300 px-3 py-3 text-xs focus:outline-none focus:border-[#364458] transition-colors"
                 />
                 <button
                   onClick={handleNotify}
                   disabled={notifyLoading || !notifyEmail}
-                  className="px-4 py-3 text-xs font-black uppercase tracking-widest bg-black text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  className="px-4 py-3 text-xs font-black uppercase tracking-widest bg-[#364458] text-white hover:bg-[#2F3F55] disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   {notifyLoading ? '...' : 'Notificar'}
                 </button>
@@ -214,17 +226,24 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
                 <button
                   key={size.inventory_id}
                   onClick={() => setSelectedSize(size)}
-                  className={`min-w-[48px] px-3 py-2 text-xs font-bold border transition-all cursor-pointer ${
+                  className={`relative min-w-[48px] px-3 py-2 text-xs font-bold border transition-all cursor-pointer overflow-hidden ${
                     isSelected
                       ? outOfStock
-                        ? 'border-gray-400 bg-gray-100 text-gray-500'
-                        : 'border-black bg-black text-white'
+                        ? 'border-gray-400 bg-gray-100 text-gray-400'
+                        : 'border-[#364458] bg-[#364458] text-white'
                       : outOfStock
                       ? 'border-gray-200 text-gray-400 hover:border-gray-400'
-                      : 'border-gray-300 text-gray-700 hover:border-black'
+                      : 'border-gray-300 text-gray-700 hover:border-[#364458]'
                   }`}
                 >
-                  <span className={outOfStock ? 'line-through' : ''}>{size.size}</span>
+                  {size.size}
+                  {outOfStock && (
+                    <span className="absolute inset-0 pointer-events-none">
+                      <svg width="100%" height="100%" className="absolute inset-0">
+                        <line x1="0" y1="100%" x2="100%" y2="0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -246,14 +265,14 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-9 h-9 border border-gray-300 flex items-center justify-center font-bold hover:border-black transition-colors cursor-pointer"
+                  className="w-9 h-9 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer"
                 >
                   −
                 </button>
                 <span className="font-bold text-sm w-4 text-center">{quantity}</span>
                 <button
                   onClick={() => setQuantity(Math.min(available, quantity + 1))}
-                  className="w-9 h-9 border border-gray-300 flex items-center justify-center font-bold hover:border-black transition-colors cursor-pointer"
+                  className="w-9 h-9 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer"
                 >
                   +
                 </button>
@@ -283,8 +302,8 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
                 </p>
               </div>
               {notifySent ? (
-                <div className="bg-yellow-50 border border-yellow-300 px-4 py-4">
-                  <p className="text-xs font-black uppercase tracking-widest text-yellow-700">
+                <div className="bg-[#EEF2F6] border border-[#8AA7C4] px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[#364458]">
                     ✓ Te avisamos cuando esté disponible
                   </p>
                 </div>
@@ -300,12 +319,12 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
                       value={notifyEmail}
                       onChange={(e) => setNotifyEmail(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleNotify()}
-                      className="flex-1 border border-gray-300 px-3 py-3 text-xs focus:outline-none focus:border-black transition-colors"
+                      className="flex-1 border border-gray-300 px-3 py-3 text-xs focus:outline-none focus:border-[#364458] transition-colors"
                     />
                     <button
                       onClick={handleNotify}
                       disabled={notifyLoading || !notifyEmail}
-                      className="px-4 py-3 text-xs font-black uppercase tracking-widest bg-black text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                      className="px-4 py-3 text-xs font-black uppercase tracking-widest bg-[#364458] text-white hover:bg-[#2F3F55] disabled:bg-gray-200 disabled:text-gray-400 transition-colors cursor-pointer disabled:cursor-not-allowed"
                     >
                       {notifyLoading ? '...' : 'Notificar'}
                     </button>
@@ -325,8 +344,8 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
                 !selectedSize || atStockLimit
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : added
-                  ? 'bg-yellow-400 text-black'
-                  : 'bg-black text-white hover:bg-gray-800'
+                  ? 'bg-[#8AA7C4] text-black'
+                  : 'bg-[#364458] text-white hover:bg-[#2F3F55]'
               }`}
             >
               {!selectedSize
@@ -343,7 +362,7 @@ export default function VariantSelector({ product, onVariantChange }: Props) {
 
       <button
         onClick={() => router.push('/carrito')}
-        className="w-full py-4 text-xs font-black uppercase tracking-widest border border-gray-300 hover:border-black transition-colors cursor-pointer"
+        className="w-full py-4 text-xs font-black uppercase tracking-widest border border-gray-300 hover:border-[#364458] transition-colors cursor-pointer"
       >
         Ver Bolsa
       </button>

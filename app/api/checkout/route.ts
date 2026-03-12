@@ -11,7 +11,7 @@ function getStripe() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { cart, customer_name, customer_phone, customer_email, delivery_method, delivery_address, coupon_code, discount_amount } = body as {
+    const { cart, customer_name, customer_phone, customer_email, delivery_method, delivery_address, coupon_code, discount_amount, shipping_amount } = body as {
       cart: CartItem[]
       customer_name: string
       customer_phone: string
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       delivery_address?: string
       coupon_code?: string
       discount_amount?: number
+      shipping_amount?: number
     }
 
     if (!cart || cart.length === 0) {
@@ -44,6 +45,18 @@ export async function POST(req: NextRequest) {
       },
       quantity: item.quantity,
     }))
+
+    // Agregar envío como line item si aplica
+    if (shipping_amount && shipping_amount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'mxn',
+          product_data: { name: 'Envío a domicilio' },
+          unit_amount: Math.round(shipping_amount * 100),
+        },
+        quantity: 1,
+      })
+    }
 
     // Apply coupon discount via Stripe
     let stripeCouponId: string | undefined

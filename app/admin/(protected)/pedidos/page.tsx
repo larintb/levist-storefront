@@ -79,7 +79,7 @@ export default async function AdminPedidosPage({ searchParams }: PageProps) {
         <div className="hidden md:flex gap-4">
           {[
             { label: 'Por preparar', count: counts.paid,      color: 'bg-blue-50 text-blue-700' },
-            { label: 'Listos',       count: counts.ready,     color: 'bg-yellow-50 text-yellow-700' },
+            { label: 'Listos',       count: counts.ready,     color: 'bg-[#EEF2F6] text-[#364458]' },
             { label: 'En camino',    count: counts.shipped,   color: 'bg-purple-50 text-purple-700' },
             { label: 'Entregados',   count: counts.picked_up, color: 'bg-green-50 text-green-700' },
           ].map(s => (
@@ -99,8 +99,8 @@ export default async function AdminPedidosPage({ searchParams }: PageProps) {
             href={s.key === 'all' ? '/admin/pedidos' : `/admin/pedidos?status=${s.key}`}
             className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border transition-colors ${
               current === s.key
-                ? 'bg-black text-white border-black'
-                : 'border-gray-200 text-gray-500 hover:border-black hover:text-black'
+                ? 'bg-[#364458] text-white border-[#364458]'
+                : 'border-gray-200 text-gray-500 hover:border-[#364458] hover:text-[#364458]'
             }`}
           >
             {s.label}

@@ -27,7 +27,7 @@ async function fetchRowsWithOOS(filters: CatalogFilters = {}): Promise<FullInven
   const supabase = getSupabase()
 
   // Paso 1: ids de productos que tienen al menos 1 variante con stock
-  let stockQ = supabase.from(VIEW).select('product_id').gt('stock', MIN_STOCK)
+  let stockQ = supabase.from(VIEW).select('product_id').gt('stock', MIN_STOCK).not('product_name', 'ilike', '%bata test%')
   if (filters.category)   stockQ = stockQ.eq('category', filters.category)
   if (filters.collection) stockQ = stockQ.eq('collection', filters.collection)
   if (filters.brand)      stockQ = stockQ.eq('brand', filters.brand)
@@ -44,6 +44,7 @@ async function fetchRowsWithOOS(filters: CatalogFilters = {}): Promise<FullInven
     .from(VIEW)
     .select('*')
     .in('product_id', productIds)
+    .not('product_name', 'ilike', '%bata test%')
     .order('product_name')
 
   if (error) { console.error('Error fetching inventory with OOS:', error); return [] }
@@ -137,7 +138,14 @@ function groupRows(rows: FullInventoryRow[]): Product[] {
 
 export async function getCatalogProducts(filters: CatalogFilters = {}): Promise<Product[]> {
   const rows = await fetchRowsWithOOS(filters)
-  return groupRows(rows)
+  const products = groupRows(rows)
+
+  switch (filters.sort) {
+    case 'name_desc': return products.sort((a, b) => b.product_name.localeCompare(a.product_name))
+    case 'price_asc': return products.sort((a, b) => a.min_price - b.min_price)
+    case 'price_desc': return products.sort((a, b) => b.min_price - a.min_price)
+    default: return products.sort((a, b) => a.product_name.localeCompare(b.product_name))
+  }
 }
 
 // Versión eficiente para home: solo trae los primeros N productos
@@ -205,50 +213,60 @@ export const getColors = unstable_cache(
   { revalidate: 600, tags: ['catalog'] }
 )
 
-export interface ColorSwatch { color: string; image_url: string | null }
+export interface ColorSwatch { color: string; image_url: string | null; in_stock: boolean }
 
-// Returns colors with the product image from a reference product (best-covered SKU)
-// Falls back to any available image for that color if the reference product lacks one.
 export const getColorSwatches = unstable_cache(
-  async (referenceProductId = '6355'): Promise<ColorSwatch[]> => {
+  async (referenceProductId = 'b748c23b-711a-4652-9c15-82867f54bc66'): Promise<ColorSwatch[]> => {
     const supabase = getSupabase()
 
-    // Single query: all color+image pairs across the entire catalog (in-stock only)
-    const [{ data: refData }, { data: allData }] = await Promise.all([
+    const [{ data: refData }, { data: stockData }, { data: anyData }] = await Promise.all([
+      // Reference product images (no stock filter — all colors)
       supabase
         .from(VIEW)
         .select('color, product_image')
         .eq('product_id', referenceProductId)
         .not('product_image', 'is', null),
+      // Which colors have stock
+      supabase
+        .from(VIEW)
+        .select('color')
+        .gt('stock', MIN_STOCK)
+        .not('color', 'is', null),
+      // All colors with images, including OOS (for fallback)
       supabase
         .from(VIEW)
         .select('color, product_image')
-        .gt('stock', MIN_STOCK)
-        .not('color', 'is', null),
+        .not('color', 'is', null)
+        .not('product_image', 'is', null),
     ])
 
-    // Build reference map: color → image from the reference product
+    // refMap: color → image from reference product
     const refMap = new Map<string, string>()
     for (const row of ((refData ?? []) as { color: string; product_image: string | null }[])) {
       const c = row.color.toLowerCase().trim()
       if (!refMap.has(c) && row.product_image) refMap.set(c, row.product_image)
     }
 
-    type ColorRow = { color: string | null; product_image: string | null }
-    const allRows = (allData ?? []) as ColorRow[]
+    // inStockSet: colors that have at least one in-stock variant
+    const inStockSet = new Set<string>()
+    for (const row of ((stockData ?? []) as { color: string }[])) {
+      inStockSet.add(row.color.toLowerCase().trim())
+    }
 
-    // Build fallback map: color → first image found anywhere in catalog
+    // fallbackMap: color → first image from any product (including OOS)
+    type ColorRow = { color: string | null; product_image: string | null }
+    const anyRows = (anyData ?? []) as ColorRow[]
     const fallbackMap = new Map<string, string>()
-    for (const row of allRows) {
+    for (const row of anyRows) {
       if (!row.product_image || !row.color) continue
       const c = row.color.toLowerCase().trim()
       if (!fallbackMap.has(c)) fallbackMap.set(c, row.product_image)
     }
 
-    // Unique colors (preserving original casing)
+    // Unique colors from all rows (preserving original casing)
     const seen = new Set<string>()
     const uniqueColors: string[] = []
-    for (const row of allRows) {
+    for (const row of anyRows) {
       if (!row.color) continue
       const key = row.color.toLowerCase().trim()
       if (!seen.has(key)) { seen.add(key); uniqueColors.push(row.color) }
@@ -259,6 +277,7 @@ export const getColorSwatches = unstable_cache(
       return {
         color,
         image_url: refMap.get(key) ?? fallbackMap.get(key) ?? null,
+        in_stock: inStockSet.has(key),
       }
     })
   },

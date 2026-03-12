@@ -23,11 +23,11 @@ interface OrderResult {
 }
 
 const STATUS_INFO: Record<string, { label: string; description: string; color: string; step: number }> = {
-  paid:      { label: 'Pago confirmado',     description: 'Tu pago fue recibido. Estamos preparando tu pedido.',         color: 'bg-yellow-400 text-yellow-900', step: 1 },
+  paid:      { label: 'Pago confirmado',     description: 'Tu pago fue recibido. Estamos preparando tu pedido.',         color: 'bg-[#8AA7C4] text-white', step: 1 },
   ready:     { label: '¡Listo para recoger!',description: 'Tu pedido está listo. Puedes pasar a recogerlo a la tienda.', color: 'bg-green-500 text-white',        step: 2 },
   shipped:   { label: 'En camino',           description: 'Tu pedido está en camino a tu domicilio.',                    color: 'bg-blue-500 text-white',         step: 2 },
-  picked_up: { label: 'Entregado ✓',         description: 'Pedido entregado. ¡Gracias por tu compra!',                  color: 'bg-black text-white',            step: 3 },
-  delivered: { label: 'Entregado ✓',         description: 'Tu pedido fue entregado. ¡Gracias por tu compra!',           color: 'bg-black text-white',            step: 3 },
+  picked_up: { label: 'Entregado ✓',         description: 'Pedido entregado. ¡Gracias por tu compra!',                  color: 'bg-[#364458] text-white',            step: 3 },
+  delivered: { label: 'Entregado ✓',         description: 'Tu pedido fue entregado. ¡Gracias por tu compra!',           color: 'bg-[#364458] text-white',            step: 3 },
   cancelled: { label: 'Cancelado',           description: 'Este pedido fue cancelado. Contáctanos si tienes dudas.',     color: 'bg-red-500 text-white',          step: 0 },
 }
 
@@ -50,15 +50,15 @@ function StatusBar({ status, method }: { status: OrderStatus; method: 'pickup' |
         return (
           <div key={label} className="flex-1 flex flex-col items-center gap-2">
             <div className="w-full flex items-center">
-              {i > 0 && <div className={`flex-1 h-0.5 ${done || active ? 'bg-black' : 'bg-gray-200'}`} />}
+              {i > 0 && <div className={`flex-1 h-0.5 ${done || active ? 'bg-[#364458]' : 'bg-gray-200'}`} />}
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 border-2
-                ${done   ? 'bg-black text-white border-black' : ''}
-                ${active ? 'bg-black text-white border-black' : ''}
+                ${done   ? 'bg-[#364458] text-white border-[#364458]' : ''}
+                ${active ? 'bg-[#364458] text-white border-[#364458]' : ''}
                 ${!done && !active ? 'bg-white text-gray-300 border-gray-200' : ''}
               `}>
                 {done ? '✓' : i + 1}
               </div>
-              {i < steps.length - 1 && <div className={`flex-1 h-0.5 ${done ? 'bg-black' : 'bg-gray-200'}`} />}
+              {i < steps.length - 1 && <div className={`flex-1 h-0.5 ${done ? 'bg-[#364458]' : 'bg-gray-200'}`} />}
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-widest text-center leading-tight
               ${active || done ? 'text-black' : 'text-gray-300'}
@@ -127,7 +127,7 @@ export default function PedidosPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value.toUpperCase())}
             placeholder="Ej. A1B2C3D4"
-            className="w-full border-b-2 border-gray-300 pb-2 text-sm font-black tracking-widest focus:outline-none focus:border-black transition-colors uppercase"
+            className="w-full border-b-2 border-gray-300 pb-2 text-sm font-black tracking-widest focus:outline-none focus:border-[#364458] transition-colors uppercase"
             autoComplete="off"
             spellCheck={false}
           />
@@ -138,7 +138,7 @@ export default function PedidosPage() {
           className={`px-6 py-2 text-xs font-black uppercase tracking-widest transition-colors
             ${loading || !query.trim()
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-black text-white hover:bg-gray-800'
+              : 'bg-[#364458] text-white hover:bg-[#2F3F55]'
             }`}
         >
           {loading ? 'Buscando…' : 'Buscar'}
@@ -173,7 +173,7 @@ export default function PedidosPage() {
             )}
 
             {/* Descripción del estado */}
-            <div className="bg-gray-50 border-l-4 border-black px-4 py-3">
+            <div className="bg-gray-50 border-l-4 border-[#364458] px-4 py-3">
               <p className="text-sm font-bold text-gray-800">{statusInfo.description}</p>
               <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">
                 Pedido realizado el{' '}

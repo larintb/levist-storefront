@@ -135,8 +135,8 @@ export default function MarketingPage() {
             onClick={() => setTab(t.key)}
             className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-colors cursor-pointer -mb-px ${
               tab === t.key
-                ? 'border-black text-black'
-                : 'border-transparent text-gray-400 hover:text-black'
+                ? 'border-[#364458] text-black'
+                : 'border-transparent text-gray-400 hover:text-[#364458]'
             }`}
           >
             {t.label}
@@ -161,7 +161,7 @@ export default function MarketingPage() {
               onChange={e => setImportText(e.target.value)}
               placeholder={'cliente@ejemplo.com\notro@correo.com, otro2@correo.com'}
               rows={5}
-              className="w-full border border-gray-200 px-3 py-2 text-xs font-mono focus:outline-none focus:border-black transition-colors resize-none mb-3"
+              className="w-full border border-gray-200 px-3 py-2 text-xs font-mono focus:outline-none focus:border-[#364458] transition-colors resize-none mb-3"
             />
             {importMsg && (
               <p className={`text-xs font-bold mb-3 ${importMsg.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
@@ -171,7 +171,7 @@ export default function MarketingPage() {
             <button
               onClick={handleImport}
               disabled={importing || !importText.trim()}
-              className="px-5 py-2.5 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40"
+              className="px-5 py-2.5 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors cursor-pointer disabled:opacity-40"
             >
               {importing ? 'Importando…' : 'Agregar contactos'}
             </button>
@@ -232,7 +232,7 @@ export default function MarketingPage() {
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 placeholder="Ej. 🔥 Rebajas de fin de temporada — hasta 40% off"
-                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -245,7 +245,7 @@ export default function MarketingPage() {
                 value={heading}
                 onChange={e => setHeading(e.target.value)}
                 placeholder="Ej. REBAJAS DE FIN DE TEMPORADA"
-                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
               />
             </div>
 
@@ -258,7 +258,7 @@ export default function MarketingPage() {
                 onChange={e => setMessage(e.target.value)}
                 placeholder={'Escribe el cuerpo del correo. Cada línea se convierte en un párrafo.\n\nEj. Tenemos descuentos de hasta 40% en toda la colección de verano.\n\nNo te pierdas estas ofertas por tiempo limitado.'}
                 rows={6}
-                className="w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-black transition-colors resize-none"
+                className="w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-[#364458] transition-colors resize-none"
               />
             </div>
 
@@ -272,7 +272,7 @@ export default function MarketingPage() {
                   value={ctaText}
                   onChange={e => setCtaText(e.target.value)}
                   placeholder="Ej. Ver ofertas"
-                  className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                  className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
                 />
               </div>
               <div>
@@ -284,7 +284,7 @@ export default function MarketingPage() {
                   value={ctaUrl}
                   onChange={e => setCtaUrl(e.target.value)}
                   placeholder="https://levist.mx/catalogo"
-                  className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors"
+                  className="w-full border-b-2 border-gray-200 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
                 />
               </div>
             </div>
@@ -299,12 +299,12 @@ export default function MarketingPage() {
                 value={testEmail}
                 onChange={e => setTestEmail(e.target.value)}
                 placeholder="tu@correo.com"
-                className="flex-1 border-b-2 border-gray-300 pb-2 text-sm font-bold bg-transparent focus:outline-none focus:border-black transition-colors"
+                className="flex-1 border-b-2 border-gray-300 pb-2 text-sm font-bold bg-transparent focus:outline-none focus:border-[#364458] transition-colors"
               />
               <button
                 onClick={() => handleSend(true)}
                 disabled={sending}
-                className="px-5 py-2 border border-gray-300 text-[10px] font-black uppercase tracking-widest text-gray-600 hover:border-black hover:text-black transition-colors cursor-pointer disabled:opacity-40"
+                className="px-5 py-2 border border-gray-300 text-[10px] font-black uppercase tracking-widest text-gray-600 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer disabled:opacity-40"
               >
                 {sending ? 'Enviando…' : 'Enviar prueba'}
               </button>
@@ -323,12 +323,12 @@ export default function MarketingPage() {
             <button
               onClick={() => setConfirmSend(true)}
               disabled={sending || activeCount === 0}
-              className="w-full py-4 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40"
+              className="w-full py-4 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors cursor-pointer disabled:opacity-40"
             >
               Enviar campaña a {activeCount} contacto{activeCount !== 1 ? 's' : ''} →
             </button>
           ) : (
-            <div className="border border-black p-5 flex flex-col gap-4">
+            <div className="border border-[#364458] p-5 flex flex-col gap-4">
               <p className="text-xs font-black uppercase tracking-widest">
                 ¿Confirmas enviar esta campaña a {activeCount} contactos?
               </p>
@@ -337,13 +337,13 @@ export default function MarketingPage() {
                 <button
                   onClick={() => handleSend(false)}
                   disabled={sending}
-                  className="px-6 py-3 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40"
+                  className="px-6 py-3 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors cursor-pointer disabled:opacity-40"
                 >
                   {sending ? 'Enviando…' : 'Sí, enviar ahora'}
                 </button>
                 <button
                   onClick={() => setConfirmSend(false)}
-                  className="px-6 py-3 border border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-black hover:text-black transition-colors cursor-pointer"
+                  className="px-6 py-3 border border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>

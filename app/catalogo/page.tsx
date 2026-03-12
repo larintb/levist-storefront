@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { getCatalogProducts, getCategories, getColors, getCollections, getBrands } from '@/lib/catalog'
 import ProductGrid from '@/components/ProductGrid'
 import CollapsibleFilterSection from '@/components/CollapsibleFilterSection'
-import type { CatalogFilters } from '@/types/product'
+import SortSelector from '@/components/SortSelector'
+import type { CatalogFilters, SortOption } from '@/types/product'
 
 export const metadata: Metadata = {
   title: 'Catálogo',
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 export const revalidate = 300
 
 interface PageProps {
-  searchParams: Promise<{ category?: string; color?: string; collection?: string; brand?: string; q?: string }>
+  searchParams: Promise<{ category?: string; color?: string; collection?: string; brand?: string; q?: string; sort?: string }>
 }
 
 // ─── Skeleton del grid ────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ function GridSkeleton() {
 
 async function CatalogResults({ filters }: { filters: CatalogFilters }) {
   const products = await getCatalogProducts(filters)
-  return <ProductGrid products={products} />
+  return <ProductGrid products={products} activeColor={filters.color} />
 }
 
 // ─── Sidebar (async, datos cacheados) ────────────────────────────────────────
@@ -64,7 +65,7 @@ async function CatalogSidebar({
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-widest">Filtros</h2>
           {hasFilters && (
-            <Link href="/catalogo" className="text-[10px] font-bold uppercase tracking-widest underline text-gray-400 hover:text-black">
+            <Link href="/catalogo" className="text-[10px] font-bold uppercase tracking-widest underline text-gray-400 hover:text-[#364458]">
               Limpiar
             </Link>
           )}
@@ -83,7 +84,7 @@ async function CatalogSidebar({
               name="q"
               defaultValue={filters.search ?? ''}
               placeholder="Nombre del producto..."
-              className="w-full border-b border-gray-300 pb-1 text-xs focus:outline-none focus:border-black font-bold uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:tracking-normal"
+              className="w-full border-b border-gray-300 pb-1 text-xs focus:outline-none focus:border-[#364458] font-bold uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:tracking-normal"
             />
           </form>
         </div>
@@ -141,12 +142,14 @@ async function CatalogSidebar({
 export default async function CatalogPage({ searchParams }: PageProps) {
   const params = await searchParams
 
+  const VALID_SORTS = ['name_asc', 'name_desc', 'price_asc', 'price_desc']
   const filters: CatalogFilters = {
     category:   params.category,
     color:      params.color,
     collection: params.collection,
     brand:      params.brand,
     search:     params.q,
+    sort:       VALID_SORTS.includes(params.sort ?? '') ? (params.sort as SortOption) : 'name_asc',
   }
 
   const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || filters.search)
@@ -155,7 +158,12 @@ export default async function CatalogPage({ searchParams }: PageProps) {
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Header */}
       <div className="mb-8 border-b border-gray-100 pb-6">
-        <h1 className="text-4xl font-black tracking-tighter uppercase italic">Catálogo</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-4xl font-black tracking-tighter uppercase italic">Catálogo</h1>
+          <Suspense fallback={null}>
+            <SortSelector current={filters.sort} />
+          </Suspense>
+        </div>
         {hasFilters && (
           <div className="flex flex-wrap gap-2 mt-3">
             {filters.category   && <Chip label={`Categoría: ${filters.category}`}   href={buildUrl(params, 'category',   undefined)} />}
@@ -191,7 +199,7 @@ function Chip({ label, href }: { label: string; href: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-colors"
+      className="inline-flex items-center gap-1 px-3 py-1 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors"
     >
       {label} ×
     </Link>

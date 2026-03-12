@@ -50,7 +50,7 @@ export default function ProductGallery({ variants, selectedVariantKey }: Props) 
               onClick={() => setActiveImage(variant.image_url)}
               className={`relative flex-shrink-0 w-16 h-20 overflow-hidden border-2 transition-all cursor-pointer ${
                 activeImage === variant.image_url
-                  ? 'border-black'
+                  ? 'border-[#364458]'
                   : 'border-gray-200 hover:border-gray-400'
               }`}
               title={variant.color}

@@ -71,9 +71,17 @@ function FeaturedSkeleton() {
 
 // ─── Async sections ───────────────────────────────────────────────────────────
 
+const FEATURED_COLORS = ['Navy', 'White', 'Red', 'Black', 'Caribbean', 'Khaki', 'Royal']
+
 async function ColorsSection() {
   const swatches = await getColorSwatches()
   if (!swatches.length) return null
+
+  // Match catalog swatches to featured colors (case-insensitive), preserve order
+  const swatchMap = new Map(swatches.map(s => [s.color.toLowerCase().trim(), s]))
+  const featured = FEATURED_COLORS
+    .map(name => swatchMap.get(name.toLowerCase()) ?? { color: name, image_url: null, in_stock: false })
+
   return (
     <section className="py-16">
       <div className="max-w-7xl mx-auto px-6">
@@ -82,15 +90,9 @@ async function ColorsSection() {
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Shop by</p>
             <h2 className="text-3xl font-black">Color</h2>
           </div>
-          <Link href="/catalogo" className="text-sm font-bold underline flex items-center gap-1">
-            Ver Todos
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
         </div>
         <div className="flex space-x-4 overflow-x-auto pb-6 custom-scrollbar">
-          {swatches.map(({ color, image_url }) => (
+          {featured.map(({ color, image_url, in_stock }) => (
             <Link
               key={color}
               href={`/catalogo?color=${encodeURIComponent(color)}`}
@@ -103,18 +105,41 @@ async function ColorsSection() {
                     alt={color}
                     fill
                     sizes="160px"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className={`object-cover transition-transform duration-500 group-hover:scale-105 ${!in_stock ? 'grayscale opacity-50' : ''}`}
                   />
                 ) : (
                   <div
-                    className="h-full w-full transition-transform duration-500 group-hover:scale-105"
+                    className={`h-full w-full transition-transform duration-500 group-hover:scale-105 ${!in_stock ? 'opacity-40' : ''}`}
                     style={{ backgroundColor: colorToHex(color) }}
                   />
                 )}
+                {!in_stock && (
+                  <div className="absolute inset-0 flex items-end justify-center pb-3 pointer-events-none">
+                    <span className="bg-black/60 text-white text-[9px] font-black uppercase tracking-widest px-2 py-1">
+                      No disponible
+                    </span>
+                  </div>
+                )}
               </div>
-              <p className="mt-2 text-xs font-bold uppercase tracking-widest">{color}</p>
+              <p className={`mt-2 text-xs font-bold uppercase tracking-widest ${!in_stock ? 'text-gray-400' : ''}`}>{color}</p>
             </Link>
           ))}
+
+          {/* See All */}
+          <Link
+            href="/catalogo"
+            className="min-w-[160px] group cursor-pointer flex-shrink-0"
+          >
+            <div className="relative h-[220px] overflow-hidden border border-gray-100 bg-gray-50 flex flex-col items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-full border-2 border-[#364458] flex items-center justify-center group-hover:bg-[#364458] transition-colors duration-300">
+                <svg className="w-4 h-4 text-[#364458] group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest text-[#364458]">Ver Todos</p>
+            </div>
+            <p className="mt-2 text-xs font-bold uppercase tracking-widest opacity-0">_</p>
+          </Link>
         </div>
       </div>
     </section>
@@ -135,7 +160,7 @@ async function CategoriesSection() {
             <Link
               key={cat}
               href={`/catalogo?category=${encodeURIComponent(cat)}`}
-              className="px-5 py-2.5 border border-gray-900 text-xs font-black uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+              className="px-5 py-2.5 border border-gray-900 text-xs font-black uppercase tracking-widest hover:bg-[#364458] hover:text-white transition-colors"
             >
               {cat}
             </Link>
@@ -172,7 +197,7 @@ export default function HomePage() {
   return (
     <>
       {/* Hero — sin datos, aparece instantáneo */}
-      <section className="relative h-[85vh] flex items-center bg-gray-900">
+      <section className="relative h-[85vh] flex items-center bg-[#2F3F55]">
         <Image
           src="/images/hero.png"
           alt="Levist Uniformes"
@@ -184,7 +209,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/10" />
         <div className="relative max-w-7xl mx-auto px-10 w-full flex justify-end">
             <div className="bg-white/10 backdrop-blur-sm p-12 max-w-lg shadow-2xl">
-            <span className="bg-yellow-400 text-[10px] font-black px-2 py-1 uppercase tracking-widest text-black">
+            <span className="bg-[#8AA7C4] text-[10px] font-black px-2 py-1 uppercase tracking-widest text-black">
               Colección Disponible
             </span>
             <h1 className="text-5xl font-black mt-4 leading-tight tracking-tighter text-white">

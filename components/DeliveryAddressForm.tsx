@@ -42,7 +42,7 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
   }
 
   const labelCls = 'block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2'
-  const fieldCls = 'w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors bg-transparent'
+  const fieldCls = 'w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors bg-transparent'
 
   return (
     <div className="flex flex-col gap-5">
@@ -51,7 +51,7 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
       <div>
         <label className={labelCls}>Dirección *</label>
         {confirmed ? (
-          <div className="flex items-start justify-between border-b-2 border-black pb-2 gap-4">
+          <div className="flex items-start justify-between border-b-2 border-[#364458] pb-2 gap-4">
             <div>
               <p className="text-sm font-bold">{value.calle}</p>
               {value.colonia && (
@@ -61,7 +61,7 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
             <button
               type="button"
               onClick={handleReset}
-              className="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors flex-shrink-0 mt-0.5"
+              className="text-[9px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors flex-shrink-0 mt-0.5"
             >
               Cambiar
             </button>
@@ -136,7 +136,7 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
               onChange={(e) => set({ referencias: e.target.value })}
               placeholder="Ej. Entre Calle 6 y Calle 7, casa color beige con portón negro"
               rows={3}
-              className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-black transition-colors resize-none bg-transparent"
+              className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors resize-none bg-transparent"
             />
           </div>
         </>

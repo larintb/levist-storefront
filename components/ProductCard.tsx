@@ -9,11 +9,20 @@ export { colorToHex } from '@/lib/colorToHex'
 
 interface Props {
   product: Product
+  activeColor?: string
 }
 
-export default function ProductCard({ product }: Props) {
+export default function ProductCard({ product, activeColor }: Props) {
   const [hoveredImage, setHoveredImage] = useState<string | null>(null)
   const [hoveredIsOos, setHoveredIsOos] = useState(false)
+
+  // When a color filter is active, show that variant's image as default
+  // Try exact match first, then partial (e.g. "Red" matches "Mineral Red")
+  const activeVariant = activeColor
+    ? (product.variants.find(v => v.color.toLowerCase().trim() === activeColor.toLowerCase().trim())
+      ?? product.variants.find(v => v.color.toLowerCase().includes(activeColor.toLowerCase().trim())))
+    : undefined
+  const defaultImage = activeVariant?.image_url ?? product.primary_image
 
   const fmt = (price: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
@@ -23,14 +32,18 @@ export default function ProductCard({ product }: Props) {
       ? fmt(product.min_price)
       : `${fmt(product.min_price)} – ${fmt(product.max_price)}`
 
+  const href = activeColor
+    ? `/catalogo/${product.product_id}?color=${encodeURIComponent(activeColor)}`
+    : `/catalogo/${product.product_id}`
+
   return (
-    <Link href={`/catalogo/${product.product_id}`} className="group block">
+    <Link href={href} className="group block">
       {/* Image */}
       <div className="relative overflow-hidden aspect-[3/4] bg-gray-100 mb-4">
         {/* Primary image — always rendered */}
-        {product.primary_image && (
+        {defaultImage && (
           <Image
-            src={product.primary_image}
+            src={defaultImage}
             alt={product.product_name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -40,7 +53,7 @@ export default function ProductCard({ product }: Props) {
           />
         )}
         {/* Hovered color image — fades in on top */}
-        {hoveredImage && hoveredImage !== product.primary_image && (
+        {hoveredImage && hoveredImage !== defaultImage && (
           <Image
             key={hoveredImage}
             src={hoveredImage}
@@ -50,7 +63,7 @@ export default function ProductCard({ product }: Props) {
             className="object-cover group-hover:scale-105 transition-opacity duration-300 opacity-100"
           />
         )}
-        {!product.primary_image && (
+        {!defaultImage && (
           <div className="absolute inset-0 flex items-center justify-center">
             <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />

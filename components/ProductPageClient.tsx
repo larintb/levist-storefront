@@ -7,12 +7,20 @@ import VariantSelector from '@/components/VariantSelector'
 
 interface Props {
   product: Product
+  initialColor?: string
 }
 
-export default function ProductPageClient({ product }: Props) {
-  const [selectedVariantKey, setSelectedVariantKey] = useState(
-    product.variants[0]?.variant_key ?? ''
-  )
+export default function ProductPageClient({ product, initialColor }: Props) {
+  const [selectedVariantKey, setSelectedVariantKey] = useState(() => {
+    if (initialColor) {
+      const key = initialColor.toLowerCase().trim()
+      const match =
+        product.variants.find(v => v.color.toLowerCase().trim() === key) ??
+        product.variants.find(v => v.color.toLowerCase().includes(key))
+      if (match) return match.variant_key
+    }
+    return product.variants[0]?.variant_key ?? ''
+  })
 
   const fmt = (price: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
@@ -35,7 +43,7 @@ export default function ProductPageClient({ product }: Props) {
         {/* Marca / Categoría / Colección */}
         <div className="flex flex-wrap gap-2">
           {product.brand && (
-            <span className="text-[10px] font-black uppercase tracking-widest bg-yellow-400 px-2 py-1">
+            <span className="text-[10px] font-black uppercase tracking-widest bg-[#8AA7C4] px-2 py-1">
               {product.brand}
             </span>
           )}
@@ -81,6 +89,7 @@ export default function ProductPageClient({ product }: Props) {
         {/* Selector de variante */}
         <VariantSelector
           product={product}
+          initialVariantKey={selectedVariantKey}
           onVariantChange={setSelectedVariantKey}
         />
       </div>

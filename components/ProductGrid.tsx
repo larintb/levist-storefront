@@ -3,9 +3,10 @@ import ProductCard from './ProductCard'
 
 interface Props {
   products: Product[]
+  activeColor?: string
 }
 
-export default function ProductGrid({ products }: Props) {
+export default function ProductGrid({ products, activeColor }: Props) {
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
@@ -21,7 +22,7 @@ export default function ProductGrid({ products }: Props) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
       {products.map((product) => (
-        <ProductCard key={product.product_id} product={product} />
+        <ProductCard key={product.product_id} product={product} activeColor={activeColor} />
       ))}
     </div>
   )

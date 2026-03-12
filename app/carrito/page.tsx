@@ -34,7 +34,7 @@ export default function CartPage() {
         <p className="text-xs text-gray-400 uppercase tracking-widest">Agrega productos del catálogo para continuar.</p>
         <Link
           href="/catalogo"
-          className="mt-2 px-8 py-4 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-colors"
+          className="mt-2 px-8 py-4 bg-[#364458] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors"
         >
           Ir al Catálogo
         </Link>
@@ -69,20 +69,20 @@ export default function CartPage() {
                 <div className="flex items-center gap-3 mt-3">
                   <button
                     onClick={() => { updateQuantity(item.inventory_id, item.quantity - 1); refresh() }}
-                    className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-black transition-colors cursor-pointer text-sm"
+                    className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer text-sm"
                   >−</button>
                   <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => { updateQuantity(item.inventory_id, item.quantity + 1); refresh() }}
                     disabled={item.quantity >= item.stock}
-                    className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-black transition-colors cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed"
                   >+</button>
                   {item.quantity >= item.stock && (
                     <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Máx.</span>
                   )}
                   <button
                     onClick={() => { removeFromCart(item.inventory_id); refresh() }}
-                    className="ml-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
+                    className="ml-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
                   >
                     Quitar
                   </button>
@@ -98,7 +98,7 @@ export default function CartPage() {
           <div className="pt-4">
             <button
               onClick={() => { clearCart(); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
-              className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors cursor-pointer"
+              className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
             >
               Vaciar Bolsa
             </button>
@@ -126,14 +126,14 @@ export default function CartPage() {
 
             <Link
               href="/checkout"
-              className="block w-full py-5 bg-black text-white text-center text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-colors"
+              className="block w-full py-5 bg-[#364458] text-white text-center text-xs font-black uppercase tracking-widest hover:bg-[#2F3F55] transition-colors"
             >
               Proceder al Pago
             </Link>
 
             <Link
               href="/catalogo"
-              className="block mt-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
+              className="block mt-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors"
             >
               Seguir Comprando
             </Link>

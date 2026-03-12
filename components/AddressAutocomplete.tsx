@@ -158,7 +158,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
           onChange={(e) => { onChange(e.target.value); setActiveIdx(-1) }}
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="w-full border-b-2 border-gray-300 pb-2 pr-20 text-sm font-bold focus:outline-none focus:border-black transition-colors bg-transparent"
+          className="w-full border-b-2 border-gray-300 pb-2 pr-20 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors bg-transparent"
         />
         {loading && (
           <span className="absolute right-0 top-0 text-[9px] font-black uppercase tracking-widest text-gray-400 animate-pulse">
@@ -184,7 +184,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
               onMouseDown={(e) => { e.preventDefault(); pick(s) }}
               onMouseEnter={() => setActiveIdx(i)}
               className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-0 ${
-                i === activeIdx ? 'bg-black text-white' : 'hover:bg-gray-50'
+                i === activeIdx ? 'bg-[#364458] text-white' : 'hover:bg-gray-50'
               }`}
             >
               <p className={`text-[11px] font-bold ${i === activeIdx ? 'text-white' : 'text-gray-900'}`}>
