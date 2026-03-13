@@ -46,17 +46,17 @@ export async function POST(req: NextRequest) {
       quantity: item.quantity,
     }))
 
-    // Agregar envío como line item si aplica
-    if (shipping_amount && shipping_amount > 0) {
-      lineItems.push({
-        price_data: {
-          currency: 'mxn',
-          product_data: { name: 'Envío a domicilio' },
-          unit_amount: Math.round(shipping_amount * 100),
-        },
-        quantity: 1,
-      })
-    }
+    // Envío como shipping_option (forma nativa de Stripe, no como line item)
+    const shippingOptions: Stripe.Checkout.SessionCreateParams.ShippingOption[] =
+      shipping_amount && shipping_amount > 0
+        ? [{
+            shipping_rate_data: {
+              type: 'fixed_amount',
+              fixed_amount: { amount: Math.round(shipping_amount * 100), currency: 'mxn' },
+              display_name: 'Envío a domicilio',
+            },
+          }]
+        : []
 
     // Apply coupon discount via Stripe
     let stripeCouponId: string | undefined
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       line_items: lineItems,
       mode: 'payment',
       customer_email: customer_email || undefined,
+      ...(shippingOptions.length > 0 ? { shipping_options: shippingOptions } : {}),
       ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
       metadata: {
         customer_name,
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
         ...(delivery_address ? { delivery_address } : {}),
         ...(coupon_code ? { discount_code: coupon_code } : {}),
         ...(discount_amount ? { discount_amount: String(discount_amount) } : {}),
+        ...(shipping_amount && shipping_amount > 0 ? { shipping_amount: String(shipping_amount) } : {}),
         // Compact format: "inventory_id:qty:price" joined by "|" — stays well under 500-char Stripe limit
         cart: cart.map((i) => `${i.inventory_id}:${i.quantity}:${i.price}`).join('|'),
       },

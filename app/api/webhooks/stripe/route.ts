@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     const delivery_address = metadata.delivery_address
     const discount_code    = metadata.discount_code ?? null
     const discount_amount  = metadata.discount_amount ? Number(metadata.discount_amount) : 0
+    const shipping_amount  = metadata.shipping_amount ? Number(metadata.shipping_amount) : 0
 
     // Compact cart format: "inventory_id:qty:price|..."
     type CompactItem = { inventory_id: string; quantity: number; price: number }
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     })
 
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    const total = Math.max(0, subtotal - discount_amount)
+    const total = Math.max(0, subtotal - discount_amount) + shipping_amount
 
     // Crear orden
     const { data: order, error: orderError } = await client
