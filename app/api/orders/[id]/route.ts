@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase'
-import { sendOrderReady, sendOrderDelivered } from '@/lib/emails'
+import { sendOrderReady, sendOrderDelivered, sendOrderCancelled } from '@/lib/emails'
 
 async function getAuthUser() {
   const cookieStore = await cookies()
@@ -85,6 +85,19 @@ export async function PATCH(
       })
     } catch (emailErr) {
       console.error('Delivered email failed:', emailErr)
+    }
+  }
+
+  // Email: pedido cancelado
+  if (status === 'cancelled' && order.customer_email) {
+    try {
+      await sendOrderCancelled({
+        to:            order.customer_email,
+        customer_name: order.customer_name,
+        order_id:      orderId,
+      })
+    } catch (emailErr) {
+      console.error('Cancellation email failed:', emailErr)
     }
   }
 

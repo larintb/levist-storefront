@@ -424,6 +424,74 @@ export async function sendOrderReady(params: SendOrderReadyParams) {
   })
 }
 
+// ─── Email — Pedido cancelado ─────────────────────────────────────────────────
+
+interface SendOrderCancelledParams {
+  to: string
+  customer_name: string
+  order_id: string
+}
+
+export async function sendOrderCancelled(params: SendOrderCancelledParams) {
+  const { to, customer_name, order_id } = params
+  const resend  = getResend()
+  const shortId = order_id.slice(0, 8).toUpperCase()
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0; padding:0; background:#f3f4f6; font-family:system-ui,-apple-system,sans-serif;">
+      <div style="max-width:600px; margin:40px auto; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,.1);">
+
+        ${emailHeader()}
+
+        <div style="padding:40px;">
+
+          <!-- Badge -->
+          <div style="display:inline-block; background:#fee2e2; color:#b91c1c; padding:5px 12px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; margin-bottom:28px;">
+            ✕ &nbsp;Pedido Cancelado
+          </div>
+
+          <h2 style="font-size:24px; font-weight:900; text-transform:uppercase; letter-spacing:-0.5px; margin:0 0 8px; color:#364458;">
+            Hola, ${customer_name}
+          </h2>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 8px; line-height:1.6;">
+            Tu pedido <strong style="color:#364458; font-family:monospace; font-size:15px;">#${shortId}</strong> ha sido cancelado.
+          </p>
+          <p style="color:#6b7280; font-size:14px; margin:0 0 36px; line-height:1.6;">
+            Si realizaste el pago con tarjeta, el reembolso se procesará en los próximos días hábiles según tu banco.
+          </p>
+
+          <!-- Número de pedido -->
+          <div style="background:#fef2f2; border-left:4px solid #fca5a5; padding:20px 24px; margin-bottom:28px;">
+            <p style="margin:0 0 4px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:2px; color:#9ca3af;">Número de pedido cancelado</p>
+            <p style="margin:0; font-family:monospace; font-size:20px; font-weight:900; color:#b91c1c;">#${shortId}</p>
+          </div>
+
+          <!-- Mensaje -->
+          <div style="background:#EEF2F6; border:1px solid #C5D5E5; padding:18px 22px;">
+            <p style="margin:0; font-size:13px; color:#364458; line-height:1.7;">
+              Si crees que esto fue un error o tienes alguna duda, contáctanos por WhatsApp y con gusto te ayudamos. 💛
+            </p>
+          </div>
+
+        </div>
+
+        ${emailFooter()}
+      </div>
+    </body>
+    </html>
+  `
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Pedido cancelado #${shortId} – LEVIST Uniformes`,
+    html,
+  })
+}
+
 // ─── Email 4 — Back in stock ──────────────────────────────────────────────────
 
 interface SendBackInStockParams {
