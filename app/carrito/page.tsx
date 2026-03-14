@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { getCart, removeFromCart, updateQuantity, getCartTotal, clearCart } from '@/lib/cart'
 import type { CartItem } from '@/types/product'
 
 export default function CartPage() {
+  const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [mounted, setMounted] = useState(false)
 
@@ -50,26 +52,29 @@ export default function CartPage() {
         {/* Items */}
         <div className="lg:col-span-2 flex flex-col gap-0 divide-y divide-gray-100">
           {cart.map((item) => (
-            <div key={item.inventory_id} className="flex gap-5 py-6">
+            <div
+              key={item.inventory_id}
+              className="flex gap-5 py-6 cursor-pointer group"
+              onClick={() => router.push(`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`)}
+            >
               <div className="relative w-24 h-28 bg-gray-100 flex-shrink-0 overflow-hidden">
                 {item.image_url ? (
-                  <Image src={item.image_url} alt={item.product_name} fill sizes="96px" className="object-cover" />
+                  <Image src={item.image_url} alt={item.product_name} fill sizes="96px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="absolute inset-0 bg-gray-200" />
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <Link
-                  href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
-                  className="font-black text-xs uppercase tracking-tight hover:text-[#364458]/60 transition-colors"
-                >{item.product_name}</Link>
+                <span className="font-black text-xs uppercase tracking-tight group-hover:text-[#364458]/60 transition-colors">
+                  {item.product_name}
+                </span>
                 <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-1">
                   {item.color} · Talla {item.size}
                 </p>
                 <p className="font-bold text-sm mt-2">{fmt(item.price)}</p>
 
-                <div className="flex items-center gap-3 mt-3">
+                <div className="flex items-center gap-3 mt-3" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => { updateQuantity(item.inventory_id, item.quantity - 1); refresh() }}
                     className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer text-sm"
