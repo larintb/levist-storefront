@@ -21,7 +21,8 @@
       "WebFetch(domain:whapi.cloud)",
       "WebFetch(domain:whapi.readme.io)",
       "WebFetch(domain:support.whapi.cloud)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
