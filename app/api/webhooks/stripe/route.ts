@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase'
 import { sendOrderConfirmation } from '@/lib/emails'
+import { sendOrderConfirmationWA } from '@/lib/whatsapp'
 import type { CartItem } from '@/types/product'
 
 function getStripe() {
@@ -163,6 +164,29 @@ export async function POST(req: NextRequest) {
       } catch (emailErr) {
         // No-fatal: loguear pero no fallar el webhook
         console.error('Confirmation email failed:', emailErr)
+      }
+    }
+
+    // Enviar WhatsApp de confirmación si hay teléfono
+    if (customer_phone) {
+      try {
+        await sendOrderConfirmationWA({
+          phone:          customer_phone,
+          customer_name,
+          order_id:       orderId,
+          items: cart.map((i) => ({
+            product_name:  i.product_name,
+            color:         i.color,
+            size:          i.size,
+            quantity:      i.quantity,
+            price_at_sale: i.price,
+          })),
+          total,
+          delivery_method,
+          delivery_address,
+        })
+      } catch (waErr) {
+        console.error('WhatsApp confirmation failed:', waErr)
       }
     }
 

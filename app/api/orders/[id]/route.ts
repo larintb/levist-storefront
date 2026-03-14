@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createServiceClient } from '@/lib/supabase'
 import { sendOrderReady, sendOrderDelivered, sendOrderCancelled } from '@/lib/emails'
+import { sendOrderReadyWA, sendOrderDeliveredWA, sendOrderCancelledWA } from '@/lib/whatsapp'
 
 async function getAuthUser() {
   const cookieStore = await cookies()
@@ -42,7 +43,7 @@ export async function PATCH(
 
   const { data: order, error: fetchError } = await client
     .from('orders')
-    .select('id, customer_name, customer_email, status, delivery_method, delivery_address')
+    .select('id, customer_name, customer_email, customer_phone, status, delivery_method, delivery_address')
     .eq('id', orderId)
     .single()
 
@@ -59,45 +60,86 @@ export async function PATCH(
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  // Email: listo para recoger / en camino
-  if ((status === 'ready' || status === 'shipped') && order.customer_email) {
-    try {
-      await sendOrderReady({
-        to:              order.customer_email,
-        customer_name:   order.customer_name,
-        order_id:        orderId,
-        delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
-        custom_message:  custom_message || undefined,
-      })
-    } catch (emailErr) {
-      console.error('Ready email failed:', emailErr)
+  // Email + WhatsApp: listo para recoger / en camino
+  if (status === 'ready' || status === 'shipped') {
+    if (order.customer_email) {
+      try {
+        await sendOrderReady({
+          to:              order.customer_email,
+          customer_name:   order.customer_name,
+          order_id:        orderId,
+          delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
+          custom_message:  custom_message || undefined,
+        })
+      } catch (emailErr) {
+        console.error('Ready email failed:', emailErr)
+      }
+    }
+    if (order.customer_phone) {
+      try {
+        await sendOrderReadyWA({
+          phone:           order.customer_phone,
+          customer_name:   order.customer_name,
+          order_id:        orderId,
+          delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
+          custom_message:  custom_message || undefined,
+        })
+      } catch (waErr) {
+        console.error('Ready WhatsApp failed:', waErr)
+      }
     }
   }
 
-  // Email: pedido completado / entregado
-  if (status === 'picked_up' && order.customer_email) {
-    try {
-      await sendOrderDelivered({
-        to:              order.customer_email,
-        customer_name:   order.customer_name,
-        order_id:        orderId,
-        delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
-      })
-    } catch (emailErr) {
-      console.error('Delivered email failed:', emailErr)
+  // Email + WhatsApp: pedido completado / entregado
+  if (status === 'picked_up') {
+    if (order.customer_email) {
+      try {
+        await sendOrderDelivered({
+          to:              order.customer_email,
+          customer_name:   order.customer_name,
+          order_id:        orderId,
+          delivery_method: (order.delivery_method ?? 'pickup') as 'pickup' | 'delivery',
+        })
+      } catch (emailErr) {
+        console.error('Delivered email failed:', emailErr)
+      }
+    }
+    if (order.customer_phone) {
+      try {
+        await sendOrderDeliveredWA({
+          phone:         order.customer_phone,
+          customer_name: order.customer_name,
+          order_id:      orderId,
+        })
+      } catch (waErr) {
+        console.error('Delivered WhatsApp failed:', waErr)
+      }
     }
   }
 
-  // Email: pedido cancelado
-  if (status === 'cancelled' && order.customer_email) {
-    try {
-      await sendOrderCancelled({
-        to:            order.customer_email,
-        customer_name: order.customer_name,
-        order_id:      orderId,
-      })
-    } catch (emailErr) {
-      console.error('Cancellation email failed:', emailErr)
+  // Email + WhatsApp: pedido cancelado
+  if (status === 'cancelled') {
+    if (order.customer_email) {
+      try {
+        await sendOrderCancelled({
+          to:            order.customer_email,
+          customer_name: order.customer_name,
+          order_id:      orderId,
+        })
+      } catch (emailErr) {
+        console.error('Cancellation email failed:', emailErr)
+      }
+    }
+    if (order.customer_phone) {
+      try {
+        await sendOrderCancelledWA({
+          phone:         order.customer_phone,
+          customer_name: order.customer_name,
+          order_id:      orderId,
+        })
+      } catch (waErr) {
+        console.error('Cancellation WhatsApp failed:', waErr)
+      }
     }
   }
 
