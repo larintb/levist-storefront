@@ -6,12 +6,40 @@ function getWhapiToken() {
   return token
 }
 
-/** Normaliza un número mexicano a formato internacional sin '+' (ej. 521XXXXXXXXXX) */
-function formatMxPhone(phone: string): string {
+/**
+ * Normaliza un número de teléfono a formato internacional sin '+'.
+ * Soporta México (+52) y EE.UU./Canadá (+1).
+ * Ejemplos de entrada aceptados:
+ *   8681234567        → 5218681234567  (MX, 10 dígitos, asume México)
+ *   521XXXXXXXXXX     → sin cambio     (MX móvil ya correcto)
+ *   52XXXXXXXXXX      → 521XXXXXXXXXX  (MX, agrega el 1 de móvil)
+ *   12125551234       → sin cambio     (US, ya correcto)
+ *   2125551234        → 12125551234    (US, 10 dígitos con código 1)
+ *   +521XXXXXXXXXX    → 521XXXXXXXXXX  (elimina el +)
+ *   +12125551234      → 12125551234    (elimina el +)
+ */
+function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
+
+  // México móvil completo
   if (digits.startsWith('521') && digits.length === 13) return digits
+  // México sin el '1' de móvil
   if (digits.startsWith('52') && digits.length === 12) return '521' + digits.slice(2)
+
+  // EE.UU./Canadá completo (1 + 10 dígitos)
+  if (digits.startsWith('1') && digits.length === 11) return digits
+  // EE.UU./Canadá sin el '1' (NPA-NXX-XXXX, primer dígito 2–9)
+  if (digits.length === 10 && /^[2-9]/.test(digits)) {
+    // Si el número empieza con dígitos típicos de US (NPA válido), asume US
+    // De lo contrario asume México
+    const usAreaCodes = /^[2-9][0-9]{2}[2-9]/.test(digits)
+    if (usAreaCodes) return '1' + digits
+  }
+
+  // 10 dígitos que no parecen US → asume México
   if (digits.length === 10) return '521' + digits
+
+  // Cualquier otro caso: devuelve tal cual
   return digits
 }
 
@@ -21,7 +49,7 @@ const fmt = (price: number) =>
 /** Envía un mensaje de texto plano por WhatsApp. */
 export async function sendWhatsAppText(phone: string, body: string): Promise<void> {
   const token = getWhapiToken()
-  const to = formatMxPhone(phone)
+  const to = formatPhone(phone)
 
   const res = await fetch(`${WHAPI_BASE}/messages/text`, {
     method: 'POST',
