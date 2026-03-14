@@ -253,9 +253,13 @@ export default function CheckoutPage() {
                 type="tel"
                 value={form.customer_phone}
                 onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
+                placeholder="Ej. 8681234567"
                 required
-                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors"
+                className="w-full border-b-2 border-gray-300 pb-2 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors placeholder:font-normal placeholder:text-gray-300"
               />
+              <p className="text-xs text-gray-500 mt-1.5">
+                México: ej. 8681234567 &nbsp;·&nbsp; EE.UU.: ej. 19561234567
+              </p>
             </div>
 
             {/* Address fields — delivery only */}

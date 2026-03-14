@@ -14,12 +14,13 @@ function getWhapiToken() {
  * México  (+52): 52 + 10 dígitos = 12 dígitos  → ej. 528681234567
  * EE.UU.  (+1) : 1  + 10 dígitos = 11 dígitos  → ej. 12125551234
  *
- * Entradas aceptadas:
- *   8681234567      → 528681234567   (MX, 10 dígitos, asume México)
+ * Regla: 10 dígitos sin prefijo siempre se asumen México.
+ * Para números US deben incluir el prefijo: +1, 1, o 11 dígitos.
+ *
+ *   8681234567      → 528681234567   (MX, 10 dígitos)
  *   528681234567    → sin cambio     (MX, ya correcto)
  *   521XXXXXXXXXX   → 52XXXXXXXXXX   (MX, quita el '1' sobrante)
  *   +528681234567   → 528681234567   (elimina el +)
- *   2125551234      → 12125551234    (US, 10 dígitos)
  *   12125551234     → sin cambio     (US, ya correcto)
  *   +12125551234    → 12125551234    (elimina el +)
  */
@@ -35,12 +36,8 @@ function formatPhone(phone: string): string {
   // US/CA ya correcto: 1 + 10 dígitos
   if (digits.startsWith('1') && digits.length === 11) return digits
 
-  // 10 dígitos: detecta si es US (NPA empieza en 2-9 y no es área MX típica)
-  if (digits.length === 10) {
-    // Áreas US: NPA válido (200-999) y NXX válido (200-999)
-    const looksUS = /^[2-9][0-9]{2}[2-9][0-9]{6}$/.test(digits)
-    return looksUS ? '1' + digits : '52' + digits
-  }
+  // 10 dígitos sin prefijo → siempre México
+  if (digits.length === 10) return '52' + digits
 
   return digits
 }
