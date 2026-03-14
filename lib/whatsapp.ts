@@ -1,3 +1,5 @@
+import { createServiceClient } from '@/lib/supabase'
+
 const WHAPI_BASE = 'https://gate.whapi.cloud'
 
 function getWhapiToken() {
@@ -7,63 +9,103 @@ function getWhapiToken() {
 }
 
 /**
- * Normaliza un número de teléfono a formato internacional sin '+'.
- * Soporta México (+52) y EE.UU./Canadá (+1).
- * Ejemplos de entrada aceptados:
- *   8681234567        → 5218681234567  (MX, 10 dígitos, asume México)
- *   521XXXXXXXXXX     → sin cambio     (MX móvil ya correcto)
- *   52XXXXXXXXXX      → 521XXXXXXXXXX  (MX, agrega el 1 de móvil)
- *   12125551234       → sin cambio     (US, ya correcto)
- *   2125551234        → 12125551234    (US, 10 dígitos con código 1)
- *   +521XXXXXXXXXX    → 521XXXXXXXXXX  (elimina el +)
- *   +12125551234      → 12125551234    (elimina el +)
+ * Normaliza un número a formato internacional sin '+'.
+ *
+ * México  (+52): 52 + 10 dígitos = 12 dígitos  → ej. 528681234567
+ * EE.UU.  (+1) : 1  + 10 dígitos = 11 dígitos  → ej. 12125551234
+ *
+ * Entradas aceptadas:
+ *   8681234567      → 528681234567   (MX, 10 dígitos, asume México)
+ *   528681234567    → sin cambio     (MX, ya correcto)
+ *   521XXXXXXXXXX   → 52XXXXXXXXXX   (MX, quita el '1' sobrante)
+ *   +528681234567   → 528681234567   (elimina el +)
+ *   2125551234      → 12125551234    (US, 10 dígitos)
+ *   12125551234     → sin cambio     (US, ya correcto)
+ *   +12125551234    → 12125551234    (elimina el +)
  */
 function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
 
-  // México móvil completo
-  if (digits.startsWith('521') && digits.length === 13) return digits
-  // México sin el '1' de móvil
-  if (digits.startsWith('52') && digits.length === 12) return '521' + digits.slice(2)
+  // MX ya correcto: 52 + 10 dígitos
+  if (digits.startsWith('52') && digits.length === 12) return digits
 
-  // EE.UU./Canadá completo (1 + 10 dígitos)
+  // MX con '1' extra (521XXXXXXXXXX → 52XXXXXXXXXX)
+  if (digits.startsWith('521') && digits.length === 13) return '52' + digits.slice(3)
+
+  // US/CA ya correcto: 1 + 10 dígitos
   if (digits.startsWith('1') && digits.length === 11) return digits
-  // EE.UU./Canadá sin el '1' (NPA-NXX-XXXX, primer dígito 2–9)
-  if (digits.length === 10 && /^[2-9]/.test(digits)) {
-    // Si el número empieza con dígitos típicos de US (NPA válido), asume US
-    // De lo contrario asume México
-    const usAreaCodes = /^[2-9][0-9]{2}[2-9]/.test(digits)
-    if (usAreaCodes) return '1' + digits
+
+  // 10 dígitos: detecta si es US (NPA empieza en 2-9 y no es área MX típica)
+  if (digits.length === 10) {
+    // Áreas US: NPA válido (200-999) y NXX válido (200-999)
+    const looksUS = /^[2-9][0-9]{2}[2-9][0-9]{6}$/.test(digits)
+    return looksUS ? '1' + digits : '52' + digits
   }
 
-  // 10 dígitos que no parecen US → asume México
-  if (digits.length === 10) return '521' + digits
-
-  // Cualquier otro caso: devuelve tal cual
   return digits
 }
+
+// ─── Logging ──────────────────────────────────────────────────────────────────
+
+async function logWA(params: {
+  original_phone: string
+  to_phone: string
+  message: string
+  status: 'sent' | 'failed'
+  error?: string
+}) {
+  try {
+    const client = createServiceClient()
+    await client.from('whatsapp_logs').insert({
+      original_phone: params.original_phone,
+      to_phone:       params.to_phone,
+      message:        params.message.slice(0, 1000), // máx 1000 chars en DB
+      status:         params.status,
+      error:          params.error ?? null,
+    })
+  } catch (e) {
+    // No-fatal: no queremos que el log rompa el flujo principal
+    console.error('[whatsapp_logs] insert failed:', e)
+  }
+}
+
+// ─── Envío base ───────────────────────────────────────────────────────────────
 
 const fmt = (price: number) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
 
-/** Envía un mensaje de texto plano por WhatsApp. */
+/** Envía un mensaje de texto plano por WhatsApp y registra el intento. */
 export async function sendWhatsAppText(phone: string, body: string): Promise<void> {
-  const token = getWhapiToken()
-  const to = formatPhone(phone)
+  const token    = getWhapiToken()
+  const to       = formatPhone(phone)
 
-  const res = await fetch(`${WHAPI_BASE}/messages/text`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ to, body }),
-  })
+  let errorMsg: string | undefined
 
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Whapi error ${res.status}: ${err}`)
+  try {
+    const res = await fetch(`${WHAPI_BASE}/messages/text`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ to, body }),
+    })
+
+    if (!res.ok) {
+      const err = await res.text()
+      errorMsg = `HTTP ${res.status}: ${err}`
+      await logWA({ original_phone: phone, to_phone: to, message: body, status: 'failed', error: errorMsg })
+      throw new Error(`Whapi error ${res.status}: ${err}`)
+    }
+  } catch (e) {
+    if (!errorMsg) {
+      errorMsg = e instanceof Error ? e.message : String(e)
+      await logWA({ original_phone: phone, to_phone: to, message: body, status: 'failed', error: errorMsg })
+    }
+    throw e
   }
+
+  await logWA({ original_phone: phone, to_phone: to, message: body, status: 'sent' })
 }
 
 // ─── Notificaciones de pedido ─────────────────────────────────────────────────
@@ -120,7 +162,7 @@ interface WAOrderReadyParams {
 
 export async function sendOrderReadyWA(params: WAOrderReadyParams) {
   const { phone, customer_name, order_id, delivery_method, custom_message } = params
-  const shortId = order_id.slice(0, 8).toUpperCase()
+  const shortId  = order_id.slice(0, 8).toUpperCase()
   const isDelivery = delivery_method === 'delivery'
 
   const headline = isDelivery
