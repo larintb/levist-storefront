@@ -18,6 +18,7 @@ interface Props {
   colors: FilterItem[]
   clearHref: string
   currentSort: string
+  activeFilters?: { label: string; href: string }[]
 }
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -28,7 +29,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ]
 
 export default function MobileCatalogControls({
-  categories, brands, collections, colors, clearHref, currentSort,
+  categories, brands, collections, colors, clearHref, currentSort, activeFilters = [],
 }: Props) {
   const [filterOpen, setFilterOpen] = useState(false)
   const [navHidden, setNavHidden] = useState(false)
@@ -72,45 +73,62 @@ export default function MobileCatalogControls({
   return (
     <>
       {/* ── Sort / filter bar — fixed below navbar (mobile only) ── */}
-      <div className={`lg:hidden fixed top-[112px] left-0 right-0 z-30 bg-white border-b border-gray-200 flex items-center justify-between px-5 py-3 transition-transform duration-300 ease-in-out ${
+      <div className={`lg:hidden fixed top-[112px] left-0 right-0 z-30 bg-white border-b border-gray-200 transition-transform duration-300 ease-in-out ${
         navHidden ? '-translate-y-[112px]' : 'translate-y-0'
       }`}>
-        {/* Sort */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-black uppercase tracking-widest text-gray-800">Sort by</span>
-          <span className="text-[11px] font-black text-[#364458]">+</span>
-          <div className="relative">
-            <select
-              value={currentSort ?? 'name_asc'}
-              onChange={e => changeSort(e.target.value)}
-              className="appearance-none bg-transparent text-[11px] font-bold uppercase tracking-wide text-[#364458] pr-4 focus:outline-none cursor-pointer"
-            >
-              {SORT_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-[#364458]">▾</span>
+        {/* Row 1: Sort + Filter buttons */}
+        <div className="flex items-center justify-between px-5 h-9">
+          {/* Sort */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-black uppercase tracking-widest text-gray-800">Sort by</span>
+            <span className="text-[11px] font-black text-[#364458]">+</span>
+            <div className="relative">
+              <select
+                value={currentSort ?? 'name_asc'}
+                onChange={e => changeSort(e.target.value)}
+                className="appearance-none bg-transparent text-[11px] font-bold uppercase tracking-wide text-[#364458] pr-4 focus:outline-none cursor-pointer h-5 leading-none"
+              >
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-[#364458]">▾</span>
+            </div>
           </div>
+
+          {/* Filter */}
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-gray-800"
+          >
+            Filter
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#364458] text-white text-[9px] font-black flex items-center justify-center leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="7" y1="12" x2="17" y2="12" />
+              <line x1="10" y1="18" x2="14" y2="18" />
+            </svg>
+          </button>
         </div>
 
-        {/* Filter */}
-        <button
-          onClick={() => setFilterOpen(true)}
-          className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-gray-800"
-        >
-          Filter
-          {activeFilterCount > 0 && (
-            <span className="w-4 h-4 rounded-full bg-[#364458] text-white text-[9px] font-black flex items-center justify-center leading-none">
-              {activeFilterCount}
-            </span>
-          )}
-          {/* Funnel icon */}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="7" y1="12" x2="17" y2="12" />
-            <line x1="10" y1="18" x2="14" y2="18" />
-          </svg>
-        </button>
+        {/* Row 2: Active filter chips (only when filters are applied) */}
+        {activeFilters.length > 0 && (
+          <div className="flex items-center gap-2 px-5 pb-2.5 overflow-x-auto scrollbar-none">
+            {activeFilters.map(f => (
+              <Link
+                key={f.href}
+                href={f.href}
+                className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-[#364458] text-white text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+              >
+                {f.label} ×
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Backdrop ── */}

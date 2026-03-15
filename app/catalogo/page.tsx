@@ -159,10 +159,19 @@ async function MobileCatalogControlsServer({
     getBrands(),
   ])
 
+  const activeFilters: { label: string; href: string }[] = [
+    filters.category   ? { label: `Categoría: ${filters.category}`,   href: buildUrl(params, 'category',   undefined) } : null,
+    filters.brand      ? { label: `Marca: ${filters.brand}`,           href: buildUrl(params, 'brand',      undefined) } : null,
+    filters.collection ? { label: `Colección: ${filters.collection}`, href: buildUrl(params, 'collection', undefined) } : null,
+    filters.color      ? { label: `Color: ${filters.color}`,           href: buildUrl(params, 'color',      undefined) } : null,
+    filters.search     ? { label: `"${filters.search}"`,               href: buildUrl(params, 'q',          undefined) } : null,
+  ].filter((f): f is { label: string; href: string } => f !== null)
+
   return (
     <MobileCatalogControls
       currentSort={filters.sort ?? 'name_asc'}
       clearHref="/catalogo"
+      activeFilters={activeFilters}
       categories={categories.map(item => ({
         label: item,
         active: filters.category === item,
@@ -211,7 +220,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
         <MobileCatalogControlsServer filters={filters} params={params} />
       </Suspense>
 
-      <div className="px-6 pb-10 pt-[46px] lg:pt-10">
+      <div className={`px-6 pb-10 lg:pt-10 ${hasFilters ? 'pt-[72px]' : 'pt-[36px]'}`}>
         {/* Header */}
         <div className="mb-8 border-b border-gray-100 pb-6">
           <div className="flex items-center justify-between gap-4">
@@ -223,7 +232,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
             </div>
           </div>
           {hasFilters && (
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="hidden lg:flex flex-wrap gap-2 mt-3">
               {filters.category   && <Chip label={`Categoría: ${filters.category}`}   href={buildUrl(params, 'category',   undefined)} />}
               {filters.brand      && <Chip label={`Marca: ${filters.brand}`}           href={buildUrl(params, 'brand',      undefined)} />}
               {filters.collection && <Chip label={`Colección: ${filters.collection}`} href={buildUrl(params, 'collection', undefined)} />}
