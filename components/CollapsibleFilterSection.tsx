@@ -1,53 +1,83 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 
-interface Item {
+type FilterItem = {
   label: string
   href: string
-  active: boolean
+  active?: boolean
 }
 
-interface Props {
+interface CollapsibleFilterSectionProps {
   title: string
-  items: Item[]
-  limit?: number
+  items: FilterItem[]
 }
 
-export default function CollapsibleFilterSection({ title, items, limit = 5 }: Props) {
-  const hasMore = items.length > limit
-  const activeIndex = items.findIndex((i) => i.active)
-  // If active item is beyond the fold, start expanded
-  const [expanded, setExpanded] = useState(activeIndex >= limit)
-
-  const visible = expanded ? items : items.slice(0, limit)
+export default function CollapsibleFilterSection({
+  title,
+  items,
+}: CollapsibleFilterSectionProps) {
+  const hasActiveItem = useMemo(() => items.some((item) => item.active), [items])
+  const [open, setOpen] = useState(hasActiveItem)
 
   return (
-    <div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">{title}</p>
-      <ul className="flex flex-col gap-1">
-        {visible.map((item) => (
-          <li key={item.label}>
-            <Link
-              href={item.href}
-              className={`block text-xs py-0.5 transition-colors ${
-                item.active ? 'font-black text-black underline' : 'text-gray-500 hover:text-[#364458] font-bold'
-              }`}
-            >
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {hasMore && (
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
+    <section className="border-b border-gray-100 pb-4">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 py-1 text-left"
+      >
+        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+          {title}
+        </span>
+
+        <svg
+          className={`h-4 w-4 text-[#364458] transition-transform duration-300 ease-out ${
+            open ? 'rotate-180' : 'rotate-0'
+          }`}
+          viewBox="0 0 20 20"
+          fill="none"
+          aria-hidden="true"
         >
-          {expanded ? 'Ver menos ↑' : `+${items.length - limit} más`}
-        </button>
-      )}
-    </div>
+          <path
+            d="M5 7.5L10 12.5L15 7.5"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      <div
+        className={`grid overflow-hidden transition-[opacity,margin] duration-300 ease-out ${
+          open ? 'opacity-100 mt-3' : 'opacity-0 mt-0'
+        }`}
+        style={{
+          gridTemplateRows: open ? '1fr' : '0fr',
+          transition: 'grid-template-rows 300ms ease-out, opacity 300ms ease-out, margin 300ms ease-out',
+        }}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-2 pb-1">
+            {items.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`text-xs uppercase tracking-wide transition-all duration-200 ${
+                  item.active
+                    ? 'font-black text-[#364458]'
+                    : 'font-medium text-gray-500 hover:text-[#364458] hover:translate-x-1'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }

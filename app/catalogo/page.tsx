@@ -5,11 +5,17 @@ import { getCatalogProducts, getCategories, getColors, getCollections, getBrands
 import ProductGrid from '@/components/ProductGrid'
 import CollapsibleFilterSection from '@/components/CollapsibleFilterSection'
 import SortSelector from '@/components/SortSelector'
+import MobileCatalogControls from '@/components/MobileCatalogControls'
 import type { CatalogFilters, SortOption } from '@/types/product'
 
 export const metadata: Metadata = {
-  title: 'Catálogo',
-  description: 'Explora nuestro catálogo completo de uniformes médicos.',
+  title: 'Catálogo de Uniformes',
+  description: 'Explora nuestra colección completa de scrubs, pijamas clínicas, filipinas y batas de laboratorio con bordado personalizado.',
+  openGraph: {
+    title: 'Catálogo de Uniformes | LEVIST',
+    description: 'Scrubs, pijamas clínicas, filipinas y batas de laboratorio con bordado personalizado.',
+    type: 'website',
+  },
 }
 
 export const revalidate = 300
@@ -60,7 +66,7 @@ async function CatalogSidebar({
   const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || filters.search)
 
   return (
-    <aside className="w-full lg:w-48 flex-shrink-0">
+    <aside className="hidden lg:block w-48 flex-shrink-0">
       <div className="flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black uppercase tracking-widest">Filtros</h2>
@@ -137,6 +143,50 @@ async function CatalogSidebar({
   )
 }
 
+// ─── Mobile controls (server wrapper → client component) ──────────────────────
+
+async function MobileCatalogControlsServer({
+  filters,
+  params,
+}: {
+  filters: CatalogFilters
+  params: Record<string, string | undefined>
+}) {
+  const [categories, colors, collections, brands] = await Promise.all([
+    getCategories(),
+    getColors(),
+    getCollections(),
+    getBrands(),
+  ])
+
+  return (
+    <MobileCatalogControls
+      currentSort={filters.sort ?? 'name_asc'}
+      clearHref="/catalogo"
+      categories={categories.map(item => ({
+        label: item,
+        active: filters.category === item,
+        href: buildUrl(params, 'category', filters.category === item ? undefined : item),
+      }))}
+      brands={brands.map(item => ({
+        label: item,
+        active: filters.brand === item,
+        href: buildUrl(params, 'brand', filters.brand === item ? undefined : item),
+      }))}
+      collections={collections.map(item => ({
+        label: item,
+        active: filters.collection === item,
+        href: buildUrl(params, 'collection', filters.collection === item ? undefined : item),
+      }))}
+      colors={colors.map(item => ({
+        label: item,
+        active: filters.color === item,
+        href: buildUrl(params, 'color', filters.color === item ? undefined : item),
+      }))}
+    />
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function CatalogPage({ searchParams }: PageProps) {
@@ -155,37 +205,46 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || filters.search)
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      {/* Header */}
-      <div className="mb-8 border-b border-gray-100 pb-6">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-4xl font-black tracking-tighter uppercase italic">Catálogo</h1>
-          <Suspense fallback={null}>
-            <SortSelector current={filters.sort} />
-          </Suspense>
-        </div>
-        {hasFilters && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {filters.category   && <Chip label={`Categoría: ${filters.category}`}   href={buildUrl(params, 'category',   undefined)} />}
-            {filters.brand      && <Chip label={`Marca: ${filters.brand}`}           href={buildUrl(params, 'brand',      undefined)} />}
-            {filters.collection && <Chip label={`Colección: ${filters.collection}`} href={buildUrl(params, 'collection', undefined)} />}
-            {filters.color      && <Chip label={`Color: ${filters.color}`}           href={buildUrl(params, 'color',      undefined)} />}
-            {filters.search     && <Chip label={`"${filters.search}"`}               href={buildUrl(params, 'q',         undefined)} />}
+    <div className="max-w-7xl mx-auto">
+      {/* Mobile sticky sort/filter bar */}
+      <Suspense fallback={null}>
+        <MobileCatalogControlsServer filters={filters} params={params} />
+      </Suspense>
+
+      <div className="px-6 pb-10 pt-[46px] lg:pt-10">
+        {/* Header */}
+        <div className="mb-8 border-b border-gray-100 pb-6">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-4xl font-black tracking-tighter uppercase italic">Catálogo</h1>
+            <div className="hidden lg:block">
+              <Suspense fallback={null}>
+                <SortSelector current={filters.sort} />
+              </Suspense>
+            </div>
           </div>
-        )}
-      </div>
+          {hasFilters && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {filters.category   && <Chip label={`Categoría: ${filters.category}`}   href={buildUrl(params, 'category',   undefined)} />}
+              {filters.brand      && <Chip label={`Marca: ${filters.brand}`}           href={buildUrl(params, 'brand',      undefined)} />}
+              {filters.collection && <Chip label={`Colección: ${filters.collection}`} href={buildUrl(params, 'collection', undefined)} />}
+              {filters.color      && <Chip label={`Color: ${filters.color}`}           href={buildUrl(params, 'color',      undefined)} />}
+              {filters.search     && <Chip label={`"${filters.search}"`}               href={buildUrl(params, 'q',         undefined)} />}
+            </div>
+          )}
+        </div>
 
-      <div className="flex flex-col lg:flex-row gap-10">
-        {/* Sidebar — datos cacheados, carga rápido */}
-        <Suspense fallback={<div className="w-full lg:w-48 flex-shrink-0" />}>
-          <CatalogSidebar filters={filters} params={params} />
-        </Suspense>
-
-        {/* Grid — más pesado, muestra skeleton mientras carga */}
-        <div className="flex-1">
-          <Suspense fallback={<GridSkeleton />}>
-            <CatalogResults filters={filters} />
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* Sidebar desktop only — datos cacheados, carga rápido */}
+          <Suspense fallback={<div className="hidden lg:block lg:w-48 flex-shrink-0" />}>
+            <CatalogSidebar filters={filters} params={params} />
           </Suspense>
+
+          {/* Grid — más pesado, muestra skeleton mientras carga */}
+          <div className="flex-1">
+            <Suspense fallback={<GridSkeleton />}>
+              <CatalogResults filters={filters} />
+            </Suspense>
+          </div>
         </div>
       </div>
     </div>

@@ -13,19 +13,46 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://levist.com'),
   title: {
-    default: 'LEVIST Uniformes – Uniformes Médicos de Calidad',
+    default: 'LEVIST Uniformes | Scrubs y Uniformes Médicos Personalizados',
     template: '%s | LEVIST Uniformes',
   },
   description:
-    'Tienda oficial de LEVIST Uniformes. Encuentra uniformes médicos, scrubs y ropa clínica de alta calidad para profesionales de la salud.',
-  keywords: ['uniformes médicos', 'scrubs', 'ropa clínica', 'uniforme enfermería', 'LEVIST'],
+    'La mejor calidad en scrubs, pijamas clínicas y batas con bordado personalizado. Uniformes médicos duraderos para profesionales de la salud.',
+  keywords: [
+    'scrubs', 'uniformes médicos', 'pijamas clínicas', 'filipinas médicas',
+    'batas de laboratorio', 'bordado personalizado', 'ropa clínica', 'uniforme enfermería', 'LEVIST',
+  ],
   openGraph: {
-    title: 'LEVIST Uniformes – Uniformes Médicos de Calidad',
-    description: 'Uniformes médicos de alta calidad para profesionales de la salud.',
+    title: 'LEVIST Uniformes – Calidad y Estilo para Profesionales',
+    description: 'Equípate con los mejores scrubs y uniformes médicos. Diseñados para el confort y la durabilidad en el hospital.',
     type: 'website',
     locale: 'es_MX',
     siteName: 'LEVIST Uniformes',
+    images: [
+      {
+        url: '/images/logo.jpg',
+        alt: 'LEVIST Uniformes Médicos',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LEVIST Uniformes – Calidad y Estilo para Profesionales',
+    description: 'Scrubs, pijamas clínicas y uniformes médicos con bordado personalizado.',
+    images: ['/images/logo.jpg'],
+  },
+  icons: {
+    icon: '/favicon.ico',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
   },
 }
 

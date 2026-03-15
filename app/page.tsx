@@ -7,12 +7,18 @@ import ProductCard from '@/components/ProductCard'
 import { colorToHex } from '@/lib/colorToHex'
 
 export const metadata: Metadata = {
-  title: 'LEVIST Uniformes – Uniformes Médicos de Calidad',
-  description: 'Tienda oficial de LEVIST Uniformes. Scrubs, pijamas clínicas y más para profesionales de la salud.',
+  title: 'LEVIST Uniformes | Scrubs y Uniformes Médicos Personalizados',
+  description: 'Tienda oficial de LEVIST Uniformes. Scrubs, pijamas clínicas y batas con bordado personalizado para profesionales de la salud.',
   openGraph: {
-    title: 'LEVIST Uniformes',
-    description: 'Uniformes médicos de calidad para profesionales de la salud.',
+    title: 'LEVIST Uniformes – Calidad y Estilo para Profesionales',
+    description: 'Equípate con los mejores scrubs y uniformes médicos. Diseñados para el confort y la durabilidad en el hospital.',
     type: 'website',
+    images: [
+      {
+        url: '/images/logo.jpg',
+        alt: 'LEVIST Uniformes Médicos',
+      },
+    ],
   },
 }
 

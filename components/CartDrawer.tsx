@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import Image from 'next/image'
 import { getCart, removeFromCart, updateQuantity, getCartTotal, getCartCount } from '@/lib/cart'
@@ -14,8 +15,11 @@ export default function CartDrawer() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [addedItem, setAddedItem] = useState<AddedItem | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   const refresh = () => setCart(getCart())
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     refresh()
@@ -63,10 +67,10 @@ export default function CartDrawer() {
           )}
         </button>
 
-        {/* Toast */}
-        {addedItem && (
+        {/* Toast — portal para escapar del containing block del navbar */}
+        {mounted && addedItem && createPortal(
           <div
-            className="fixed bottom-6 right-6 z-[200] w-72 bg-[#364458] text-white rounded-2xl shadow-2xl pointer-events-none overflow-hidden"
+            className="fixed bottom-24 right-6 z-[200] w-72 bg-[#364458] text-white rounded-2xl shadow-2xl pointer-events-none overflow-hidden"
             style={{
               transition: 'opacity 0.35s ease, transform 0.35s ease',
               opacity: toastVisible ? 1 : 0,
@@ -94,152 +98,163 @@ export default function CartDrawer() {
                 }}
               />
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
 
-      {/* Backdrop — semi-opaco en mobile, invisible en desktop */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 sm:bg-transparent"
-          onClick={() => setOpen(false)}
-        />
+      {/* Botón flotante — portal para escapar del containing block del navbar */}
+      {mounted && createPortal(
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Abrir carrito"
+          className="fixed bottom-6 right-6 z-[150] w-14 h-14 rounded-full bg-[#364458] text-white shadow-[0_8px_30px_rgba(54,68,88,0.5)] flex items-center justify-center hover:bg-[#2F3F55] active:scale-95 transition-all duration-200 cursor-pointer"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          {count > 0 && (
+            <span className="absolute -top-1 -right-1 bg-[#8AA7C4] text-[#364458] text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black leading-none">
+              {count > 99 ? '99' : count}
+            </span>
+          )}
+        </button>,
+        document.body
       )}
 
-      {/* Drawer
-          Mobile:  bottom sheet, full-width, slides up from bottom
-          Desktop: dropdown, 340px, slides down from top-right
-      */}
-      <div
-        className={`fixed z-50 flex flex-col bg-[#364458] shadow-[0_-8px_40px_rgba(0,0,0,0.4)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.35)] overflow-hidden
-          transition-[opacity,visibility,transform] duration-300 ease-in-out
-          inset-x-0 bottom-0 max-h-[92vh] rounded-t-2xl
-          sm:inset-x-auto sm:bottom-auto sm:top-[72px] sm:right-4 sm:w-[340px] sm:max-h-[98vh] sm:rounded-2xl
-          ${open
-            ? 'opacity-100 visible translate-y-0'
-            : 'opacity-0 invisible translate-y-full sm:translate-y-[-12px]'
+      {/* Backdrop + Drawer — portal centrado en el viewport */}
+      {mounted && createPortal(
+        <div
+          className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-[opacity,visibility] duration-300 ease-in-out ${
+            open ? 'opacity-100 visible' : 'opacity-0 invisible'
           }`}
-      >
-        {/* Drag handle — solo mobile */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden flex-shrink-0">
-          <div className="w-10 h-1 rounded-full bg-white/20" />
-        </div>
+          onClick={() => setOpen(false)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 sm:py-5 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
+          {/* Panel */}
+          <div
+            className={`relative z-10 w-full sm:w-[380px] max-h-[85vh] rounded-2xl overflow-hidden flex flex-col bg-[#364458] shadow-[0_24px_80px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-in-out ${
+              open ? 'translate-y-0' : 'translate-y-4'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <h2 className="text-xs font-black uppercase tracking-widest text-white">Tu Bolsa</h2>
+                {count > 0 && (
+                  <span className="bg-[#8AA7C4] text-[#364458] text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {count}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setOpen(false)} className="cursor-pointer w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <h2 className="text-xs font-black uppercase tracking-widest text-white">Tu Bolsa</h2>
-            {count > 0 && (
-              <span className="bg-[#8AA7C4] text-[#364458] text-[10px] font-black px-2 py-0.5 rounded-full">
-                {count}
-              </span>
+
+            {/* Divider */}
+            <div className="mx-6 h-px bg-white/10 flex-shrink-0" />
+
+            {/* Items + recomendaciones */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="px-6 py-4 flex flex-col gap-4">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                    <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
+                      <svg className="w-7 h-7 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-white/30">Tu bolsa está vacía</p>
+                    <Link
+                      href="/catalogo"
+                      onClick={() => setOpen(false)}
+                      className="text-xs font-black uppercase tracking-widest text-[#8AA7C4] hover:text-white transition-colors"
+                    >
+                      Ver Catálogo →
+                    </Link>
+                  </div>
+                ) : (
+                  cart.map((item) => (
+                    <div key={item.inventory_id} className="flex gap-3 bg-white/5 rounded-xl p-3">
+                      <div className="relative w-14 flex-shrink-0 rounded-lg bg-white/10 overflow-hidden" style={{ height: '72px' }}>
+                        {item.image_url ? (
+                          <Image src={item.image_url} alt={item.product_name} fill className="object-cover" sizes="56px" />
+                        ) : (
+                          <div className="absolute inset-0 bg-white/10 rounded-lg" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
+                          onClick={() => setOpen(false)}
+                          className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight hover:text-[#8AA7C4] transition-colors"
+                        >{item.product_name}</Link>
+                        <p className="text-[10px] text-[#8AA7C4] mt-1">{item.color} · Talla {item.size}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-sm font-black text-white">{fmt(item.price)}</p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => { updateQuantity(item.inventory_id, item.quantity - 1); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
+                              className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center text-xs hover:bg-white/20 cursor-pointer transition-colors"
+                            >−</button>
+                            <span className="text-xs font-black text-white w-4 text-center">{item.quantity}</span>
+                            <button
+                              onClick={() => { updateQuantity(item.inventory_id, item.quantity + 1); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
+                              className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center text-xs hover:bg-white/20 cursor-pointer transition-colors"
+                            >+</button>
+                            <button
+                              onClick={() => { removeFromCart(item.inventory_id); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
+                              className="ml-1 text-[9px] font-bold uppercase tracking-widest text-white/20 hover:text-red-300 cursor-pointer transition-colors"
+                            >✕</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {cart.length > 0 && <CompleteYourFit cartItems={cart} onCartUpdate={refresh} />}
+            </div>
+
+            {/* Footer */}
+            {cart.length > 0 && (
+              <div className="px-6 pb-6 pt-4 flex flex-col gap-3 flex-shrink-0">
+                <div className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-3">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#8AA7C4]">Subtotal</span>
+                  <span className="text-base font-black text-white">{fmt(total)}</span>
+                </div>
+                <Link
+                  href="/checkout"
+                  onClick={() => setOpen(false)}
+                  className="w-full py-3.5 bg-white text-[#364458] text-center text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#8AA7C4] transition-colors"
+                >
+                  Ir a Pagar →
+                </Link>
+                <Link
+                  href="/catalogo"
+                  onClick={() => setOpen(false)}
+                  className="text-center text-[10px] font-bold uppercase tracking-widest text-white/25 hover:text-white/60 transition-colors"
+                >
+                  Seguir Comprando
+                </Link>
+              </div>
             )}
           </div>
-          <button onClick={() => setOpen(false)} className="cursor-pointer w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="mx-6 h-px bg-white/10 flex-shrink-0" />
-
-        {/* Items + recomendaciones — flex-1 para ocupar espacio disponible entre header y footer */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="px-6 py-4 flex flex-col gap-4">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-              <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
-                <svg className="w-7 h-7 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/30">Tu bolsa está vacía</p>
-              <Link
-                href="/catalogo"
-                onClick={() => setOpen(false)}
-                className="text-xs font-black uppercase tracking-widest text-[#8AA7C4] hover:text-white transition-colors"
-              >
-                Ver Catálogo →
-              </Link>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div key={item.inventory_id} className="flex gap-3 bg-white/5 rounded-xl p-3">
-                <div className="relative w-14 flex-shrink-0 rounded-lg bg-white/10 overflow-hidden" style={{ height: '72px' }}>
-                  {item.image_url ? (
-                    <Image src={item.image_url} alt={item.product_name} fill className="object-cover" sizes="56px" />
-                  ) : (
-                    <div className="absolute inset-0 bg-white/10 rounded-lg" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
-                    onClick={() => setOpen(false)}
-                    className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight hover:text-[#8AA7C4] transition-colors"
-                  >{item.product_name}</Link>
-                  <p className="text-[10px] text-[#8AA7C4] mt-1">{item.color} · Talla {item.size}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm font-black text-white">{fmt(item.price)}</p>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => { updateQuantity(item.inventory_id, item.quantity - 1); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
-                        className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center text-xs hover:bg-white/20 cursor-pointer transition-colors"
-                      >−</button>
-                      <span className="text-xs font-black text-white w-4 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => { updateQuantity(item.inventory_id, item.quantity + 1); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
-                        className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center text-xs hover:bg-white/20 cursor-pointer transition-colors"
-                      >+</button>
-                      <button
-                        onClick={() => { removeFromCart(item.inventory_id); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
-                        className="ml-1 text-[9px] font-bold uppercase tracking-widest text-white/20 hover:text-red-300 cursor-pointer transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Complete Your Fit — dentro del scroll */}
-        {cart.length > 0 && <CompleteYourFit cartItems={cart} onCartUpdate={refresh} />}
-        </div>{/* fin flex-1 scroll */}
-
-        {/* Footer */}
-        {cart.length > 0 && (
-          <div className="px-6 pb-6 pt-4 flex flex-col gap-3 flex-shrink-0">
-            <div className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#8AA7C4]">Subtotal</span>
-              <span className="text-base font-black text-white">{fmt(total)}</span>
-            </div>
-            <Link
-              href="/checkout"
-              onClick={() => setOpen(false)}
-              className="w-full py-3.5 bg-white text-[#364458] text-center text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#8AA7C4] transition-colors"
-            >
-              Ir a Pagar →
-            </Link>
-            <Link
-              href="/catalogo"
-              onClick={() => setOpen(false)}
-              className="text-center text-[10px] font-bold uppercase tracking-widest text-white/25 hover:text-white/60 transition-colors"
-            >
-              Seguir Comprando
-            </Link>
-          </div>
-        )}
-      </div>
+        </div>,
+        document.body
+      )}
     </>
   )
 }

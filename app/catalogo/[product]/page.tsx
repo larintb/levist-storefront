@@ -15,13 +15,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getProductById(productId)
   if (!product) return { title: 'Producto no encontrado' }
 
+  const colorCount = product.variants.length
+  const description = `${product.product_name}${product.brand ? ` de ${product.brand}` : ''}. ${product.category ?? 'Uniforme médico'} disponible en ${colorCount} color${colorCount !== 1 ? 'es' : ''}. Bordado personalizado disponible.`
+
   return {
     title: product.product_name,
-    description: `${product.product_name}${product.brand ? ` – ${product.brand}` : ''}. Disponible en ${product.variants.length} color${product.variants.length > 1 ? 'es' : ''}.`,
+    description,
     openGraph: {
       title: `${product.product_name} | LEVIST Uniformes`,
-      description: `${product.category ?? 'Uniforme médico'} – ${product.brand ?? 'LEVIST Uniformes'}`,
-      images: product.primary_image ? [{ url: product.primary_image }] : [],
+      description,
+      type: 'website',
+      images: product.primary_image
+        ? [{ url: product.primary_image, alt: product.product_name }]
+        : [{ url: '/images/logo.jpg', alt: 'LEVIST Uniformes' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.product_name} | LEVIST Uniformes`,
+      description,
+      images: product.primary_image ? [product.primary_image] : ['/images/logo.jpg'],
     },
   }
 }

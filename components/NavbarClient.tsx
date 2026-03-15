@@ -20,7 +20,9 @@ export default function NavbarClient({ categories, brands, collections }: Props)
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [proximamente, setProximamente] = useState(false)
+  const [navHidden, setNavHidden] = useState(false)
   const headerRef = useRef<HTMLElement>(null)
+  const lastScrollY = useRef(0)
 
   // Maneja animación de entrada/salida del panel
   useEffect(() => {
@@ -64,6 +66,24 @@ export default function NavbarClient({ categories, brands, collections }: Props)
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
+
+  // Hide on scroll down, show on scroll up
+  useEffect(() => {
+    function onScroll() {
+      const currentY = window.scrollY
+      if (currentY < 80) {
+        setNavHidden(false)
+        lastScrollY.current = currentY
+        return
+      }
+      const diff = currentY - lastScrollY.current
+      if (diff > 4) setNavHidden(true)
+      else if (diff < -4) setNavHidden(false)
+      lastScrollY.current = currentY
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   function toggle(panel: Panel) {
     setActive(prev => prev === panel ? null : panel)
@@ -141,6 +161,11 @@ export default function NavbarClient({ categories, brands, collections }: Props)
 
   return (
     <>
+      {/* Navbar wrapper — sticky para toda la barra (announcement + header) */}
+      <div className={`sticky top-0 z-50 transition-transform duration-300 ease-in-out ${
+        navHidden && !mobileOpen ? '-translate-y-full lg:translate-y-0' : 'translate-y-0'
+      }`}>
+
       {/* Announcement Bar */}
       <div className="bg-[#364458] text-white text-xs font-bold py-2 px-4 flex justify-between items-center">
         <div className="flex-1 text-center tracking-widest uppercase">
@@ -156,7 +181,10 @@ export default function NavbarClient({ categories, brands, collections }: Props)
       </div>
 
       {/* Header */}
-      <header ref={headerRef} className="sticky top-0 bg-white z-50 border-b border-gray-100">
+      <header
+        ref={headerRef}
+        className="bg-white border-b border-gray-100"
+      >
 
         {/* Barra principal */}
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -284,10 +312,11 @@ export default function NavbarClient({ categories, brands, collections }: Props)
           </div>
         </div>
       </header>
+      </div>{/* /sticky wrapper */}
 
       {/* Mobile — overlay fullscreen */}
       <div
-        className={`fixed inset-0 z-40 bg-white flex flex-col transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed inset-0 z-[55] bg-white flex flex-col transition-transform duration-300 ease-in-out lg:hidden ${
           mobileOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -333,6 +362,57 @@ export default function NavbarClient({ categories, brands, collections }: Props)
             </div>
           )}
         </nav>
+
+        {/* Redes sociales */}
+        <div className="px-6 py-6 border-t border-gray-100 flex flex-col gap-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Síguenos</p>
+          <div className="flex flex-col gap-2">
+            <a
+              href="https://www.instagram.com/levistuniforms/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 text-sm font-bold text-gray-700 hover:text-[#364458] transition-colors"
+            >
+              <span className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                  <circle cx="12" cy="12" r="4"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+              </span>
+              Instagram
+            </a>
+            <a
+              href="https://www.tiktok.com/@levist.uniformes"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 text-sm font-bold text-gray-700 hover:text-[#364458] transition-colors"
+            >
+              <span className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.67a8.19 8.19 0 0 0 4.78 1.52V6.7a4.85 4.85 0 0 1-1.01-.01z"/>
+                </svg>
+              </span>
+              TikTok
+            </a>
+            <a
+              href="https://www.facebook.com/uniformesmedicoslevist"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 text-sm font-bold text-gray-700 hover:text-[#364458] transition-colors"
+            >
+              <span className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                </svg>
+              </span>
+              Facebook
+            </a>
+          </div>
+        </div>
 
         <div className="h-1 bg-[#8AA7C4]" />
       </div>
