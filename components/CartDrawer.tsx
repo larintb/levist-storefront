@@ -125,18 +125,20 @@ export default function CartDrawer() {
       {/* Backdrop + Drawer — portal centrado en el viewport */}
       {mounted && createPortal(
         <div
-          className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-[opacity,visibility] duration-300 ease-in-out ${
-            open ? 'opacity-100 visible' : 'opacity-0 invisible'
+          className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-[visibility] duration-300 ${
+            open ? 'visible' : 'invisible'
           }`}
           onClick={() => setOpen(false)}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
+            open ? 'opacity-100' : 'opacity-0'
+          }`} />
 
           {/* Panel */}
           <div
-            className={`relative z-10 w-full sm:w-[380px] max-h-[85vh] rounded-2xl overflow-hidden flex flex-col bg-[#364458] shadow-[0_24px_80px_rgba(0,0,0,0.5)] transition-transform duration-300 ease-in-out ${
-              open ? 'translate-y-0' : 'translate-y-4'
+            className={`relative z-10 w-full sm:w-[380px] max-h-[85vh] rounded-2xl overflow-hidden flex flex-col bg-[#364458] shadow-[0_24px_80px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-300 ease-in-out ${
+              open ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
             onClick={e => e.stopPropagation()}
           >
