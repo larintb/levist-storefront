@@ -15,8 +15,13 @@ export default function ProductSwatches({ variants, productId, productName, onSw
   const [notifyColor, setNotifyColor] = useState<string | null>(null)
   const [email, setEmail]             = useState('')
   const [status, setStatus]           = useState<'idle' | 'loading' | 'ok' | 'err'>('idle')
+  const [showAll, setShowAll]         = useState(false)
 
   if (variants.length <= 1) return null
+
+  const inStock = variants.filter(v => v.color !== 'ADO' && v.in_stock)
+  const oos     = variants.filter(v => v.color !== 'ADO' && !v.in_stock)
+  const visible = showAll ? variants : inStock
 
   async function handleNotify(e: React.FormEvent) {
     e.preventDefault()
@@ -34,7 +39,7 @@ export default function ProductSwatches({ variants, productId, productName, onSw
     <div className="mt-2">
       {/* Swatches — in-stock navigate, OOS open notify form */}
       <div className="flex flex-wrap gap-1.5">
-        {variants.map((v) => {
+        {visible.map((v) => {
           const oos = !v.in_stock
           const isActive = notifyColor === v.color
           const isAdo = v.color === 'ADO'
@@ -70,6 +75,15 @@ export default function ProductSwatches({ variants, productId, productName, onSw
             />
           )
         })}
+        {!showAll && oos.length > 0 && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAll(true) }}
+            className="w-5 h-5 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-[9px] font-black text-gray-400 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer flex-shrink-0"
+            title={`Ver ${oos.length} color${oos.length > 1 ? 'es' : ''} agotado${oos.length > 1 ? 's' : ''}`}
+          >
+            +{oos.length}
+          </button>
+        )}
       </div>
 
       {/* Formulario de notificación inline */}

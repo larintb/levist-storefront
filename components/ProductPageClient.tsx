@@ -19,7 +19,11 @@ export default function ProductPageClient({ product, initialColor }: Props) {
         product.variants.find(v => v.color.toLowerCase().includes(key))
       if (match) return match.variant_key
     }
-    return product.variants[0]?.variant_key ?? ''
+    return (
+      product.variants.find(v => v.color !== 'ADO' && v.in_stock)
+      ?? product.variants.find(v => v.color !== 'ADO')
+      ?? product.variants[0]
+    )?.variant_key ?? ''
   })
 
   const fmt = (price: number) =>

@@ -19,11 +19,14 @@ export default function VariantSelector({ product, initialVariantKey, onVariantC
       const match = product.variants.find(v => v.variant_key === initialVariantKey)
       if (match && match.color !== 'ADO') return match
     }
-    return product.variants.find(v => v.color !== 'ADO') ?? product.variants[0]
+    return product.variants.find(v => v.color !== 'ADO' && v.in_stock)
+      ?? product.variants.find(v => v.color !== 'ADO')
+      ?? product.variants[0]
   })
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  const [showAllColors, setShowAllColors] = useState(false)
 
   // Notify-me state
   const [notifyEmail, setNotifyEmail] = useState('')
@@ -40,7 +43,7 @@ export default function VariantSelector({ product, initialVariantKey, onVariantC
   const available = selectedSize ? Math.max(0, selectedSize.stock - cartQty) : 0
 
   // Is the selected size completely out of stock?
-  const sizeOutOfStock = selectedSize !== null && selectedSize.stock <= 1
+  const sizeOutOfStock = selectedSize !== null && selectedSize.stock <= 0
 
   useEffect(() => {
     setSelectedSize(null)
@@ -132,9 +135,14 @@ export default function VariantSelector({ product, initialVariantKey, onVariantC
             <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-red-400">Agotado</span>
           )}
         </p>
+        {(() => {
+          const inStock = product.variants.filter(v => v.color !== 'ADO' && v.in_stock)
+          const oos     = product.variants.filter(v => v.color !== 'ADO' && !v.in_stock)
+          const visible = showAllColors ? product.variants : inStock
+          return (<>
         <div className="flex flex-wrap gap-2">
-          {product.variants.map((variant) => {
-            const oos = !variant.in_stock
+          {visible.map((variant) => {
+            const isOos = !variant.in_stock
             const isSelected = variant.variant_key === selectedVariant.variant_key
             const isAdo = variant.color === 'ADO'
             return (
@@ -142,28 +150,39 @@ export default function VariantSelector({ product, initialVariantKey, onVariantC
                 key={variant.variant_key}
                 disabled={isAdo}
                 onClick={() => { if (!isAdo) { setSelectedVariant(variant); onVariantChange?.(variant.variant_key) } }}
-                title={isAdo ? 'No disponible' : oos ? `${variant.color} — Agotado` : variant.color}
+                title={isAdo ? 'No disponible' : isOos ? `${variant.color} — Agotado` : variant.color}
                 className={`flex items-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wide border transition-all ${
                   isAdo
                     ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
                     : isSelected
-                    ? oos
+                    ? isOos
                       ? 'border-gray-400 bg-gray-100 text-gray-500 cursor-pointer'
                       : 'border-[#364458] bg-[#364458] text-white cursor-pointer'
-                    : oos
+                    : isOos
                     ? 'border-gray-200 text-gray-400 hover:border-gray-400 cursor-pointer'
                     : 'border-gray-300 text-gray-700 hover:border-[#364458] cursor-pointer'
                 }`}
               >
                 <span
                   className="w-3 h-3 rounded-full flex-shrink-0 border border-[#364458]/10"
-                  style={{ backgroundColor: colorToHex(variant.color), opacity: isAdo ? 0.2 : oos ? 0.5 : 1 }}
+                  style={{ backgroundColor: colorToHex(variant.color), opacity: isAdo ? 0.2 : isOos ? 0.5 : 1 }}
                 />
-                <span className={isAdo ? 'line-through' : oos ? 'line-through' : ''}>{variant.color}</span>
+                <span className={isAdo || isOos ? 'line-through' : ''}>{variant.color}</span>
               </button>
             )
           })}
         </div>
+        {!showAllColors && oos.length > 0 && (
+          <button
+            onClick={() => setShowAllColors(true)}
+            className="mt-3 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <span className="w-4 h-4 rounded-full border border-dashed border-current flex items-center justify-center text-[8px]">+</span>
+            Ver todos los colores · {oos.length} agotado{oos.length > 1 ? 's' : ''}
+          </button>
+        )}
+        </>)
+        })()}
       </div>
 
       {/* Si el color seleccionado está agotado — formulario de notificación */}
@@ -220,7 +239,7 @@ export default function VariantSelector({ product, initialVariantKey, onVariantC
           </p>
           <div className="flex flex-wrap gap-2">
             {selectedVariant.sizes.map((size) => {
-              const outOfStock = size.stock <= 1
+              const outOfStock = size.stock <= 0
               const isSelected = selectedSize?.inventory_id === size.inventory_id
               return (
                 <button

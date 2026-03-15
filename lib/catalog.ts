@@ -3,7 +3,7 @@ import { getSupabase } from './supabase'
 import type { FullInventoryRow, Product, CatalogFilters } from '@/types/product'
 
 const VIEW = 'full_inventory_details'
-const MIN_STOCK = 1 // stock > MIN_STOCK = disponible
+const MIN_STOCK = 0 // stock > MIN_STOCK = disponible  (0 → incluye stock = 1)
 
 // Fetch solo productos con stock (para home / featured)
 async function fetchRows(filters: CatalogFilters = {}): Promise<FullInventoryRow[]> {
@@ -131,6 +131,9 @@ function groupRows(rows: FullInventoryRow[]): Product[] {
     for (const variant of product.variants) {
       variant.sizes.sort((a, b) => sizeSort(a.size, b.size))
     }
+    // Prefer an in-stock variant's image as the card cover photo
+    const inStockImage = product.variants.find(v => v.in_stock && v.image_url)?.image_url
+    if (inStockImage) product.primary_image = inStockImage
   }
 
   return Array.from(productMap.values())
