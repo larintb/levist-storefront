@@ -60,7 +60,11 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
         <span className="text-black truncate">{product.product_name}</span>
       </nav>
 
-      <ProductPageClient product={product} initialColor={color} />
+      <ProductPageClient
+        product={product}
+        initialColor={color}
+        isBordado={product.product_name.toLowerCase().includes('bordado')}
+      />
     </div>
   )
 }

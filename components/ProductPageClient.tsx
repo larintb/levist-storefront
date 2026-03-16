@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { Product } from '@/types/product'
 import ProductGallery from '@/components/ProductGallery'
 import VariantSelector from '@/components/VariantSelector'
@@ -8,9 +9,10 @@ import VariantSelector from '@/components/VariantSelector'
 interface Props {
   product: Product
   initialColor?: string
+  isBordado?: boolean
 }
 
-export default function ProductPageClient({ product, initialColor }: Props) {
+export default function ProductPageClient({ product, initialColor, isBordado }: Props) {
   const [selectedVariantKey, setSelectedVariantKey] = useState(() => {
     if (initialColor) {
       const key = initialColor.toLowerCase().trim()
@@ -29,8 +31,9 @@ export default function ProductPageClient({ product, initialColor }: Props) {
   const fmt = (price: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)
 
-  const priceLabel =
-    product.min_price === product.max_price
+  const priceLabel = isBordado
+    ? fmt(80)
+    : product.min_price === product.max_price
       ? fmt(product.min_price)
       : `${fmt(product.min_price)} – ${fmt(product.max_price)}`
 
@@ -72,30 +75,41 @@ export default function ProductPageClient({ product, initialColor }: Props) {
         </div>
 
         {/* Stats */}
-        <div className="border-y border-gray-100 py-4 flex gap-6 text-[10px] uppercase tracking-widest font-bold text-gray-400">
-          <span>
-            <span className="text-black">{product.variants.length}</span>{' '}
-            Color{product.variants.length > 1 ? 'es' : ''}
-          </span>
-          <span>
-            <span className="text-black">
-              {new Set(product.variants.flatMap((v) => v.sizes.map((s) => s.size))).size}
-            </span>{' '}
-            Tallas
-          </span>
-          {product.sku && (
+        {!isBordado && (
+          <div className="border-y border-gray-100 py-4 flex gap-6 text-[10px] uppercase tracking-widest font-bold text-gray-400">
             <span>
-              SKU <span className="text-black font-mono">{product.sku}</span>
+              <span className="text-black">{product.variants.length}</span>{' '}
+              Color{product.variants.length > 1 ? 'es' : ''}
             </span>
-          )}
-        </div>
+            <span>
+              <span className="text-black">
+                {new Set(product.variants.flatMap((v) => v.sizes.map((s) => s.size))).size}
+              </span>{' '}
+              Tallas
+            </span>
+            {product.sku && (
+              <span>
+                SKU <span className="text-black font-mono">{product.sku}</span>
+              </span>
+            )}
+          </div>
+        )}
 
-        {/* Selector de variante */}
-        <VariantSelector
-          product={product}
-          initialVariantKey={selectedVariantKey}
-          onVariantChange={setSelectedVariantKey}
-        />
+        {/* Selector de variante o botón de bordado */}
+        {isBordado ? (
+          <Link
+            href="/bordado"
+            className="w-full py-5 bg-[#364458] text-white text-center text-sm font-black uppercase tracking-widest hover:bg-[#2F3F55] active:scale-[0.98] transition-all shadow-[0_8px_30px_rgba(54,68,88,0.3)] block"
+          >
+            Personalizar Bordado →
+          </Link>
+        ) : (
+          <VariantSelector
+            product={product}
+            initialVariantKey={selectedVariantKey}
+            onVariantChange={setSelectedVariantKey}
+          />
+        )}
       </div>
     </div>
   )
