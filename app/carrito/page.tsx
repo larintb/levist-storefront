@@ -58,7 +58,7 @@ export default function CartPage() {
               className="flex gap-5 py-6 cursor-pointer group"
               onClick={() => router.push(`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`)}
             >
-              <div className="relative w-24 h-28 bg-gray-100 flex-shrink-0 overflow-hidden">
+              <div className="relative w-24 h-28 bg-gray-100 shrink-0 overflow-hidden">
                 {item.image_url ? (
                   <Image src={item.image_url} alt={item.product_name} fill sizes="96px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
@@ -98,7 +98,7 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <div className="hidden sm:block text-right flex-shrink-0">
+              <div className="hidden sm:block text-right shrink-0">
                 <p className="font-black text-sm">{fmt(item.price * item.quantity)}</p>
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function CartPage() {
               {cart.map((item) => (
                 <div key={item.inventory_id} className="flex justify-between text-gray-500 font-bold">
                   <span className="truncate pr-2">{item.product_name} ×{item.quantity}</span>
-                  <span className="flex-shrink-0">{fmt(item.price * item.quantity)}</span>
+                  <span className="shrink-0">{fmt(item.price * item.quantity)}</span>
                 </div>
               ))}
             </div>
