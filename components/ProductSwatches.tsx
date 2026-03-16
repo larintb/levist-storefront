@@ -78,7 +78,7 @@ export default function ProductSwatches({ variants, productId, productName, onSw
         {!showAll && oos.length > 0 && (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAll(true) }}
-            className="w-5 h-5 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-[9px] font-black text-gray-400 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer flex-shrink-0"
+            className="w-5 h-5 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-[9px] font-black text-gray-400 hover:border-[#364458] hover:text-[#364458] transition-colors cursor-pointer shrink-0"
             title={`Ver ${oos.length} color${oos.length > 1 ? 'es' : ''} agotado${oos.length > 1 ? 's' : ''}`}
           >
             +{oos.length}
@@ -113,7 +113,7 @@ export default function ProductSwatches({ variants, productId, productName, onSw
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="px-2 py-1 bg-[#364458] text-white text-[9px] font-black uppercase tracking-widest flex-shrink-0 disabled:opacity-50 cursor-pointer"
+                  className="px-2 py-1 bg-[#364458] text-white text-[9px] font-black uppercase tracking-widest shrink-0 disabled:opacity-50 cursor-pointer"
                 >
                   {status === 'loading' ? '…' : '→'}
                 </button>

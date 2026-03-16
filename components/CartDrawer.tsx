@@ -70,7 +70,7 @@ export default function CartDrawer() {
         {/* Toast — portal para escapar del containing block del navbar */}
         {mounted && addedItem && createPortal(
           <div
-            className="fixed bottom-24 right-6 z-[200] w-72 bg-[#364458] text-white rounded-2xl shadow-2xl pointer-events-none overflow-hidden"
+            className="fixed bottom-24 right-6 z-200 w-72 bg-[#364458] text-white rounded-2xl shadow-2xl pointer-events-none overflow-hidden"
             style={{
               transition: 'opacity 0.35s ease, transform 0.35s ease',
               opacity: toastVisible ? 1 : 0,
@@ -78,7 +78,7 @@ export default function CartDrawer() {
             }}
           >
             <div className="px-5 py-4 flex items-center gap-4">
-              <div className="w-9 h-9 rounded-full bg-[#8AA7C4]/20 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-[#8AA7C4]/20 flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4 text-[#8AA7C4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
@@ -108,7 +108,7 @@ export default function CartDrawer() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir carrito"
-          className="fixed bottom-6 right-6 z-[150] w-14 h-14 rounded-full bg-[#364458] text-white shadow-[0_8px_30px_rgba(54,68,88,0.5)] flex items-center justify-center hover:bg-[#2F3F55] active:scale-95 transition-all duration-200 cursor-pointer"
+          className="fixed bottom-6 right-6 z-150 w-14 h-14 rounded-full bg-[#364458] text-white shadow-[0_8px_30px_rgba(54,68,88,0.5)] flex items-center justify-center hover:bg-[#2F3F55] active:scale-95 transition-all duration-200 cursor-pointer"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -125,7 +125,7 @@ export default function CartDrawer() {
       {/* Backdrop + Drawer — portal centrado en el viewport */}
       {mounted && createPortal(
         <div
-          className={`fixed inset-0 z-[200] flex items-center justify-center p-4 transition-[visibility] duration-300 ${
+          className={`fixed inset-0 z-200 flex items-center justify-center p-4 transition-[visibility] duration-300 ${
             open ? 'visible' : 'invisible'
           }`}
           onClick={() => setOpen(false)}
@@ -137,13 +137,13 @@ export default function CartDrawer() {
 
           {/* Panel */}
           <div
-            className={`relative z-10 w-full sm:w-[380px] max-h-[85vh] rounded-2xl overflow-hidden flex flex-col bg-[#364458] shadow-[0_24px_80px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-300 ease-in-out ${
+            className={`relative z-10 w-full sm:w-95 max-h-[85vh] rounded-2xl overflow-hidden flex flex-col bg-[#364458] shadow-[0_24px_80px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-300 ease-in-out ${
               open ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 flex-shrink-0">
+            <div className="flex items-center justify-between px-6 py-5 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
                   <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +165,7 @@ export default function CartDrawer() {
             </div>
 
             {/* Divider */}
-            <div className="mx-6 h-px bg-white/10 flex-shrink-0" />
+            <div className="mx-6 h-px bg-white/10 shrink-0" />
 
             {/* Items + recomendaciones */}
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -189,7 +189,7 @@ export default function CartDrawer() {
                 ) : (
                   cart.map((item) => (
                     <div key={item.inventory_id} className="flex gap-3 bg-white/5 rounded-xl p-3">
-                      <div className="relative w-14 flex-shrink-0 rounded-lg bg-white/10 overflow-hidden" style={{ height: '72px' }}>
+                      <div className="relative w-14 shrink-0 rounded-lg bg-white/10 overflow-hidden" style={{ height: '72px' }}>
                         {item.item_type === 'embroidery' ? (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <svg className="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@ export default function CartDrawer() {
 
             {/* Footer */}
             {cart.length > 0 && (
-              <div className="px-6 pb-6 pt-4 flex flex-col gap-3 flex-shrink-0">
+              <div className="px-6 pb-6 pt-4 flex flex-col gap-3 shrink-0">
                 <div className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-3">
                   <span className="text-xs font-bold uppercase tracking-widest text-[#8AA7C4]">Subtotal</span>
                   <span className="text-base font-black text-white">{fmt(total)}</span>
