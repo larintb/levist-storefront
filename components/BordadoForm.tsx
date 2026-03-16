@@ -9,7 +9,7 @@ type View = 'start' | 'tipo' | 'lugar' | 'nombre-input' | 'color-hilo' | 'logo-i
 type Tipo = 'nombre' | 'logo'
 
 // Precio del bordado en MXN — ajustar según tarifa
-const BORDADO_PRICE = 80
+const BORDADO_PRICE = 90
 
 const LUGARES = [
   { id: 'Pecho Izquierdo',  label: 'Pecho',  side: 'Izquierdo' },
