@@ -15,6 +15,7 @@ export default function CartPage() {
   useEffect(() => {
     setMounted(true)
     setCart(getCart())
+    sessionStorage.setItem('cart_visited', '1')
   }, [])
 
   const refresh = () => setCart(getCart())

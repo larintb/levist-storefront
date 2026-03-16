@@ -43,6 +43,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     setMounted(true)
 
+    // Requiere haber visitado /carrito antes de llegar a /checkout
+    if (!sessionStorage.getItem('cart_visited')) {
+      router.replace('/carrito')
+      return
+    }
+
     function syncCart() {
       const c = getCart()
       if (c.length === 0) { router.replace('/carrito'); return }

@@ -257,11 +257,11 @@ export default function CartDrawer() {
                   <span className="text-base font-black text-white">{fmt(total)}</span>
                 </div>
                 <Link
-                  href="/checkout"
+                  href="/carrito"
                   onClick={() => setOpen(false)}
                   className="w-full py-3.5 bg-white text-[#364458] text-center text-xs font-black uppercase tracking-widest rounded-xl hover:bg-[#8AA7C4] transition-colors"
                 >
-                  Ir a Pagar →
+                  Ver Bolsa →
                 </Link>
                 <Link
                   href="/catalogo"
