@@ -50,6 +50,28 @@ export default function CheckoutPage() {
     }
 
     syncCart()
+
+    // DEV LOG — verificar bordados en checkout
+    const currentCart = getCart()
+    const bordados = currentCart.filter((i) => i.item_type === 'embroidery')
+    if (bordados.length > 0) {
+      console.group('🧵 Bordados en checkout')
+      bordados.forEach((b, idx) => {
+        console.log(`Bordado ${idx + 1}:`, {
+          tipo:      b.embroidery?.tipo,
+          lugar:     b.embroidery?.lugar,
+          nombre:    b.embroidery?.nombre     ?? '—',
+          colorHilo: b.embroidery?.colorHilo  ?? '—',
+          precio:    b.price,
+          cantidad:  b.quantity,
+          id:        b.inventory_id,
+        })
+      })
+      console.groupEnd()
+    } else {
+      console.log('🧵 Bordados en checkout: ninguno')
+    }
+
     window.addEventListener('cart-updated', syncCart)
     window.addEventListener('storage', syncCart)
     return () => {

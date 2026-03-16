@@ -57,6 +57,13 @@ export interface CartItem {
   quantity: number
   stock: number       // stock real al momento de agregar — límite máximo
   image_url: string | null
+  item_type?: 'product' | 'embroidery'
+  embroidery?: {
+    tipo: 'nombre' | 'logo'
+    lugar: string
+    nombre?: string
+    colorHilo?: string
+  }
 }
 
 export type SortOption = 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc'

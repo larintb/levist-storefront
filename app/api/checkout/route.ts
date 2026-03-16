@@ -33,18 +33,26 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SITE_URL ??
       'http://localhost:3000'
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = cart.map((item) => ({
-      price_data: {
-        currency: 'mxn',
-        product_data: {
-          name: item.product_name,
-          description: `${item.color} – Talla ${item.size}`,
-          ...(item.image_url ? { images: [item.image_url] } : {}),
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = cart.map((item) => {
+      const isEmbroidery = item.item_type === 'embroidery'
+      const description = isEmbroidery
+        ? item.embroidery?.tipo === 'logo'
+          ? `Logo · ${item.embroidery.lugar}`
+          : `${item.embroidery?.nombre} · ${item.embroidery?.lugar} · ${item.embroidery?.colorHilo}`
+        : `${item.color} – Talla ${item.size}`
+      return {
+        price_data: {
+          currency: 'mxn',
+          product_data: {
+            name: isEmbroidery ? 'Bordado Personalizado' : item.product_name,
+            description,
+            ...(item.image_url ? { images: [item.image_url] } : {}),
+          },
+          unit_amount: Math.round(item.price * 100),
         },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity,
-    }))
+        quantity: item.quantity,
+      }
+    })
 
     // Envío como shipping_option (forma nativa de Stripe, no como line item)
     const shippingOptions: Stripe.Checkout.SessionCreateParams.ShippingOption[] =
@@ -88,6 +96,20 @@ export async function POST(req: NextRequest) {
         ...(shipping_amount && shipping_amount > 0 ? { shipping_amount: String(shipping_amount) } : {}),
         // Compact format: "inventory_id:qty:price" joined by "|" — stays well under 500-char Stripe limit
         cart: cart.map((i) => `${i.inventory_id}:${i.quantity}:${i.price}`).join('|'),
+        // Detalles de bordados como JSON compacto (solo si hay bordados en el carrito)
+        ...(cart.some((i) => i.item_type === 'embroidery') ? {
+          bordados: JSON.stringify(
+            cart
+              .filter((i) => i.item_type === 'embroidery')
+              .map((i) => ({
+                id:  i.inventory_id,
+                t:   i.embroidery?.tipo,
+                l:   i.embroidery?.lugar,
+                n:   i.embroidery?.nombre    ?? null,
+                c:   i.embroidery?.colorHilo ?? null,
+              }))
+          ),
+        } : {}),
       },
       success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,

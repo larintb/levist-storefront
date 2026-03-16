@@ -55,19 +55,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid cart metadata' }, { status: 400 })
     }
 
+    // Separar productos normales de bordados
+    // Los bordados NO van a order_items (inventory_id es UUID FK, no admite strings)
+    // Sus detalles se guardan en orders.embroidery_notes
+    const productItems  = compact.filter((i) => !i.inventory_id.startsWith('embroidery_'))
+    const embroideryItems = compact.filter((i) => i.inventory_id.startsWith('embroidery_'))
+
     const client = createServiceClient()
 
-    // Look up product details for confirmation email
+    // Lookup de detalles solo para productos reales (evita error de tipo UUID en Postgres)
     const { data: inventoryRows } = await client
       .from('full_inventory_details')
       .select('inventory_id, product_id, product_name, color, size')
-      .in('inventory_id', compact.map((i) => i.inventory_id))
+      .in('inventory_id', productItems.map((i) => i.inventory_id))
 
     const detailsMap = new Map(
       (inventoryRows ?? []).map((r) => [r.inventory_id, r])
     )
 
     const cart: CartItem[] = compact.map((i) => {
+      if (i.inventory_id.startsWith('embroidery_')) {
+        return {
+          inventory_id: i.inventory_id,
+          quantity:     i.quantity,
+          price:        i.price,
+          product_id:   'bordado',
+          product_name: 'Bordado',
+          color:        '',
+          size:         '',
+          variant_key:  '',
+          stock:        0,
+          image_url:    null,
+          item_type:    'embroidery' as const,
+        }
+      }
       const detail = detailsMap.get(i.inventory_id)
       return {
         inventory_id: i.inventory_id,
@@ -83,10 +104,30 @@ export async function POST(req: NextRequest) {
       }
     })
 
+    // Construir embroidery_notes desde metadata.bordados
+    // Formato legible para el admin: una línea por bordado
+    type BordadoMeta = { id: string; t: string; l: string; n: string | null; c: string | null }
+    let embroidery_notes: string | null = null
+    if (embroideryItems.length > 0 && metadata.bordados) {
+      try {
+        const arr = JSON.parse(metadata.bordados) as BordadoMeta[]
+        const lines = arr.map((b, idx) =>
+          b.t === 'logo'
+            ? `Bordado ${idx + 1}: Logo | ${b.l}`
+            : `Bordado ${idx + 1}: Nombre "${b.n}" | ${b.l} | Hilo ${b.c}`
+        )
+        embroidery_notes = lines.join('\n')
+      } catch (e) {
+        console.error('Error parsing bordados metadata:', e)
+        // Fallback: al menos dejar constancia de cuántos bordados hay
+        embroidery_notes = `${embroideryItems.length} bordado(s) — ver detalles en Stripe`
+      }
+    }
+
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
     const total = Math.max(0, subtotal - discount_amount) + shipping_amount
 
-    // Crear orden
+    // Crear orden — embroidery_notes ya existe en la tabla orders
     const { data: order, error: orderError } = await client
       .from('orders')
       .insert({
@@ -103,6 +144,7 @@ export async function POST(req: NextRequest) {
         school_id: null,
         delivery_method,
         delivery_address: delivery_address ?? null,
+        ...(embroidery_notes ? { embroidery_notes } : {}),
       })
       .select('id')
       .single()
@@ -114,19 +156,21 @@ export async function POST(req: NextRequest) {
 
     const orderId = order.id
 
-    // Insertar artículos
-    const { error: itemsError } = await client
-      .from('order_items')
-      .insert(cart.map((item) => ({
-        order_id:       orderId,
-        inventory_id:   item.inventory_id,
-        quantity:       item.quantity,
-        price_at_sale:  item.price,
-      })))
+    // Insertar solo productos reales en order_items (bordados van en orders.embroidery_notes)
+    if (productItems.length > 0) {
+      const { error: itemsError } = await client
+        .from('order_items')
+        .insert(productItems.map((item) => ({
+          order_id:      orderId,
+          inventory_id:  item.inventory_id,
+          quantity:      item.quantity,
+          price_at_sale: item.price,
+        })))
 
-    if (itemsError) {
-      console.error('Order items insert failed:', itemsError)
-      return NextResponse.json({ error: 'Items insert failed' }, { status: 500 })
+      if (itemsError) {
+        console.error('Order items insert failed:', itemsError)
+        return NextResponse.json({ error: 'Items insert failed' }, { status: 500 })
+      }
     }
 
     // Incrementar uso del código de descuento
@@ -134,8 +178,8 @@ export async function POST(req: NextRequest) {
       await client.rpc('increment_coupon_uses', { p_code: discount_code })
     }
 
-    // Reducir stock
-    for (const item of cart) {
+    // Reducir stock solo para productos reales
+    for (const item of productItems) {
       const { error } = await client.rpc('decrement_stock', {
         p_inventory_id: item.inventory_id,
         p_quantity:     item.quantity,
@@ -143,7 +187,7 @@ export async function POST(req: NextRequest) {
       if (error) console.error(`Stock decrement failed for ${item.inventory_id}:`, error)
     }
 
-    // Enviar email de confirmación si hay dirección
+    // Enviar email de confirmación
     if (customer_email) {
       try {
         await sendOrderConfirmation({
@@ -162,12 +206,11 @@ export async function POST(req: NextRequest) {
           delivery_address,
         })
       } catch (emailErr) {
-        // No-fatal: loguear pero no fallar el webhook
         console.error('Confirmation email failed:', emailErr)
       }
     }
 
-    // Enviar WhatsApp de confirmación si hay teléfono
+    // Enviar WhatsApp de confirmación
     if (customer_phone) {
       try {
         await sendOrderConfirmationWA({
@@ -191,6 +234,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`✓ Order ${orderId} created from session ${session.id}`)
+    if (embroidery_notes) console.log(`  Bordados:\n${embroidery_notes}`)
   }
 
   return NextResponse.json({ received: true })

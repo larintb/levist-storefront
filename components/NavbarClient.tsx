@@ -204,6 +204,13 @@ export default function NavbarClient({ categories, brands, collections }: Props)
             {navBtn('womens', 'Womens')}
             {navBtn('categorias', 'Categorías')}
             <Link
+              href="/bordado"
+              onClick={() => setActive(null)}
+              className="font-bold text-xs uppercase tracking-wide text-gray-600 hover:text-[#364458] transition-colors h-full flex items-center border-b-2 border-transparent hover:border-[#364458]"
+            >
+              Bordado
+            </Link>
+            <Link
               href="/pedidos"
               onClick={() => setActive(null)}
               className="font-bold text-xs uppercase tracking-wide text-gray-600 hover:text-[#364458] transition-colors h-full flex items-center border-b-2 border-transparent hover:border-[#364458]"
@@ -332,6 +339,7 @@ export default function NavbarClient({ categories, brands, collections }: Props)
             { label: 'Mens',       href: '/catalogo?gender=mens' },
             { label: 'Womens',     href: '/catalogo?gender=womens' },
             { label: 'Catálogo',   href: '/catalogo' },
+            { label: 'Bordado',    href: '/bordado' },
             { label: 'Pedidos',    href: '/pedidos' },
           ].map((item) => (
             <Link

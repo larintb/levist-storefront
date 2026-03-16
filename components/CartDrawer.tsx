@@ -190,19 +190,38 @@ export default function CartDrawer() {
                   cart.map((item) => (
                     <div key={item.inventory_id} className="flex gap-3 bg-white/5 rounded-xl p-3">
                       <div className="relative w-14 flex-shrink-0 rounded-lg bg-white/10 overflow-hidden" style={{ height: '72px' }}>
-                        {item.image_url ? (
+                        {item.item_type === 'embroidery' ? (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <circle cx="6" cy="6" r="3" strokeWidth={1.5} />
+                              <circle cx="6" cy="18" r="3" strokeWidth={1.5} />
+                              <path strokeLinecap="round" strokeWidth={1.5} d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" />
+                            </svg>
+                          </div>
+                        ) : item.image_url ? (
                           <Image src={item.image_url} alt={item.product_name} fill className="object-cover" sizes="56px" />
                         ) : (
                           <div className="absolute inset-0 bg-white/10 rounded-lg" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Link
-                          href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
-                          onClick={() => setOpen(false)}
-                          className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight hover:text-[#8AA7C4] transition-colors"
-                        >{item.product_name}</Link>
-                        <p className="text-[10px] text-[#8AA7C4] mt-1">{item.color} · Talla {item.size}</p>
+                        {item.item_type === 'embroidery' ? (
+                          <p className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight">
+                            Bordado
+                          </p>
+                        ) : (
+                          <Link
+                            href={`/catalogo/${item.product_id}?color=${encodeURIComponent(item.color)}`}
+                            onClick={() => setOpen(false)}
+                            className="text-xs font-black uppercase tracking-tight line-clamp-2 text-white leading-tight hover:text-[#8AA7C4] transition-colors"
+                          >{item.product_name}</Link>
+                        )}
+                        <p className="text-[10px] text-[#8AA7C4] mt-1">
+                          {item.item_type === 'embroidery'
+                            ? `${item.size} · ${item.embroidery?.tipo === 'logo' ? 'Logo' : item.embroidery?.nombre}`
+                            : `${item.color} · Talla ${item.size}`
+                          }
+                        </p>
                         <div className="flex items-center justify-between mt-2">
                           <p className="text-sm font-black text-white">{fmt(item.price)}</p>
                           <div className="flex items-center gap-1.5">
