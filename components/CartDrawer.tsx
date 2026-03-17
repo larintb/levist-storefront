@@ -200,7 +200,7 @@ export default function CartDrawer() {
                             </svg>
                           </div>
                         ) : item.image_url ? (
-                          <Image src={item.image_url} alt={item.product_name} fill className="object-cover" sizes="56px" />
+                          <Image src={item.image_url} alt={item.product_name} fill unoptimized className="object-cover" sizes="56px" />
                         ) : (
                           <div className="absolute inset-0 bg-white/10 rounded-lg" />
                         )}
