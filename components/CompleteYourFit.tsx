@@ -65,7 +65,7 @@ function FitCard({
       className="bg-white/5 rounded-xl p-3 flex gap-3 cursor-pointer group/fit hover:bg-white/10 transition-colors"
       onClick={() => router.push(`/catalogo/${product.product_id}?color=${encodeURIComponent(product.color)}`)}
     >
-      <div className="relative w-14 flex-shrink-0 rounded-lg overflow-hidden bg-white/10" style={{ height: '72px' }}>
+      <div className="relative w-14 shrink-0 rounded-lg overflow-hidden bg-white/10" style={{ height: '72px' }}>
         {product.image_url
           ? <Image src={product.image_url} alt={product.product_name} fill unoptimized className="object-cover group-hover/fit:scale-105 transition-transform duration-300" sizes="56px" />
           : <div className="absolute inset-0 bg-white/10 rounded-lg" />
