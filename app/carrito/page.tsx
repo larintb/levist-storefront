@@ -17,6 +17,8 @@ export default function CartPage() {
     setMounted(true)
     setCart(getCart())
     sessionStorage.setItem('cart_visited', '1')
+    window.addEventListener('cart-updated', refresh)
+    return () => window.removeEventListener('cart-updated', refresh)
   }, [])
 
   const refresh = () => setCart(getCart())
@@ -78,12 +80,12 @@ export default function CartPage() {
 
                 <div className="flex items-center gap-3 mt-3" onClick={(e) => e.stopPropagation()}>
                   <button
-                    onClick={() => { updateQuantity(item.inventory_id, item.quantity - 1); refresh() }}
+                    onClick={() => { updateQuantity(item.inventory_id, item.quantity - 1); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
                     className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer text-sm"
                   >−</button>
                   <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
                   <button
-                    onClick={() => { updateQuantity(item.inventory_id, item.quantity + 1); refresh() }}
+                    onClick={() => { updateQuantity(item.inventory_id, item.quantity + 1); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
                     disabled={item.quantity >= item.stock}
                     className="w-8 h-8 border border-gray-300 flex items-center justify-center font-bold hover:border-[#364458] transition-colors cursor-pointer text-sm disabled:opacity-30 disabled:cursor-not-allowed"
                   >+</button>
@@ -91,7 +93,7 @@ export default function CartPage() {
                     <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Máx.</span>
                   )}
                   <button
-                    onClick={() => { removeFromCart(item.inventory_id); refresh() }}
+                    onClick={() => { removeFromCart(item.inventory_id); refresh(); window.dispatchEvent(new Event('cart-updated')) }}
                     className="ml-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors cursor-pointer"
                   >
                     Quitar
