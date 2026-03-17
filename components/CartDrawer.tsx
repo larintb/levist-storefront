@@ -265,6 +265,15 @@ export default function CartDrawer() {
                 >
                   Ver Bolsa →
                 </Link>
+                {!cart.some(item => item.item_type === 'embroidery') && (
+                  <Link
+                    href="/bordado"
+                    onClick={() => setOpen(false)}
+                    className="w-full py-3.5 border-2 border-white/30 text-white text-center text-xs font-black uppercase tracking-widest rounded-xl hover:border-white/60 hover:bg-white/10 transition-colors"
+                  >
+                    🧵 Personaliza tu Bordado
+                  </Link>
+                )}
                 <Link
                   href="/catalogo"
                   onClick={() => setOpen(false)}

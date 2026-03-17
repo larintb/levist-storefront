@@ -145,6 +145,15 @@ export default function CartPage() {
               Proceder al Pago
             </Link>
 
+            {!cart.some(item => item.item_type === 'embroidery') && (
+              <Link
+                href="/bordado"
+                className="block w-full mt-3 py-4 border-2 border-[#364458] text-[#364458] text-center text-xs font-black uppercase tracking-widest hover:bg-[#364458] hover:text-white transition-colors"
+              >
+                🧵 Personaliza tu Bordado
+              </Link>
+            )}
+
             <Link
               href="/catalogo"
               className="block mt-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#364458] transition-colors"
