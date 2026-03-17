@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
+    minimumCacheTTL: 3600, // Cache optimized images for 1 hour to avoid repeated slow fetches
     // Aquí autorizamos los dominios desde los cuales se cargarán las imágenes.
     remotePatterns: [
       // https://www.winkscrubs.com
