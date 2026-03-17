@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { getCart, removeFromCart, updateQuantity, getCartTotal, clearCart } from '@/lib/cart'
 import type { CartItem } from '@/types/product'
+import CartPromoBanners from '@/components/CartPromoBanners'
 
 export default function CartPage() {
   const router = useRouter()
@@ -112,6 +113,8 @@ export default function CartPage() {
               Vaciar Bolsa
             </button>
           </div>
+
+          <CartPromoBanners variant="page" cartItems={cart} onCartUpdate={refresh} />
         </div>
 
         {/* Resumen */}

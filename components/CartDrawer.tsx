@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { getCart, removeFromCart, updateQuantity, getCartTotal, getCartCount } from '@/lib/cart'
 import type { CartItem } from '@/types/product'
 import CompleteYourFit from './CompleteYourFit'
+import CartPromoBanners from './CartPromoBanners'
 
 interface AddedItem { name: string; color: string; size: string }
 
@@ -247,6 +248,7 @@ export default function CartDrawer() {
               </div>
 
               {cart.length > 0 && <CompleteYourFit cartItems={cart} onCartUpdate={refresh} />}
+              {cart.length > 0 && <CartPromoBanners variant="drawer" cartItems={cart} onCartUpdate={refresh} />}
             </div>
 
             {/* Footer */}
