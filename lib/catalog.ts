@@ -66,7 +66,7 @@ function sizeSort(a: string, b: string): number {
   return a.localeCompare(b)
 }
 
-function groupRows(rows: FullInventoryRow[]): Product[] {
+export function groupRows(rows: FullInventoryRow[]): Product[] {
   const productMap = new Map<string, Product>()
   // Deduplicate rows by inventory_id to prevent repeated sizes
   const seen = new Set<string>()

@@ -2,7 +2,9 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getCatalogProducts, getCategories, getColors, getCollections, getBrands } from '@/lib/catalog'
+import { detectCuration, getCuration } from '@/lib/curations'
 import ProductGrid from '@/components/ProductGrid'
+import CuratedGrid from '@/components/CuratedGrid'
 import CollapsibleFilterSection from '@/components/CollapsibleFilterSection'
 import SortSelector from '@/components/SortSelector'
 import MobileCatalogControls from '@/components/MobileCatalogControls'
@@ -43,6 +45,22 @@ function GridSkeleton() {
 // ─── Grid de productos (async, en su propio Suspense) ─────────────────────────
 
 async function CatalogResults({ filters }: { filters: CatalogFilters }) {
+  // Detect curated keyword — if matched, render special layout
+  const curationKey = detectCuration(filters.search)
+  if (curationKey) {
+    const curation = await getCuration(curationKey)
+    if (curation && curation.items.length > 0) {
+      return (
+        <CuratedGrid
+          title={curation.title}
+          subtitle={curation.subtitle}
+          items={curation.items}
+        />
+      )
+    }
+  }
+
+  // Normal catalog results
   const products = await getCatalogProducts(filters)
   return <ProductGrid products={products} activeColor={filters.color} />
 }
