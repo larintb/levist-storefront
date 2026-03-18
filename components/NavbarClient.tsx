@@ -334,7 +334,28 @@ export default function NavbarClient({ categories, brands, collections }: Props)
           <button onClick={() => setMobileOpen(false)} className="text-2xl font-black">✕</button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-1">
+        {/* Búsqueda mobile */}
+        <div className="px-6 pt-6 pb-2">
+          <form
+            action="/catalogo"
+            method="GET"
+            onSubmit={() => setMobileOpen(false)}
+            className="flex items-center border border-gray-200 rounded-xl px-4 py-3 gap-3 bg-gray-50"
+          >
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              name="q"
+              placeholder="Buscar productos..."
+              autoComplete="off"
+              className="flex-1 text-sm font-bold uppercase tracking-widest bg-transparent focus:outline-none placeholder:text-gray-400 placeholder:font-normal placeholder:normal-case placeholder:tracking-normal"
+            />
+          </form>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-1">
           {[
             { label: 'Mens',       href: '/catalogo?gender=mens' },
             { label: 'Womens',     href: '/catalogo?gender=womens' },

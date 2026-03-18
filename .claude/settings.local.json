@@ -23,7 +23,8 @@
       "WebFetch(domain:support.whapi.cloud)",
       "Bash(cd:*)",
       "WebFetch(domain:github.com)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep -r type=text C:UsersvlpizDesktopNewlevist-storefront/components C:UsersvlpizDesktopNewlevist-storefront/app --include=*.tsx --include=*.jsx)"
     ]
   }
 }
