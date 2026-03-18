@@ -25,7 +25,12 @@
       "WebFetch(domain:github.com)",
       "Bash(find:*)",
       "Bash(grep -r type=text C:UsersvlpizDesktopNewlevist-storefront/components C:UsersvlpizDesktopNewlevist-storefront/app --include=*.tsx --include=*.jsx)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep -r full_inventory_details /c/Users/vlpiz/Desktop/New/levist-storefront --include=*.ts --include=*.js -B 5 -A 10)",
+      "Bash(find /c/Users/vlpiz/Desktop/New/levist-storefront -type f \\\\\\(-name *.md -o -name *.txt -o -name *.json \\\\\\))",
+      "Bash(ls:*)",
+      "Bash(grep -r SELECT.*inventory_id.*product_id /c/Users/vlpiz/Desktop/New/levist-storefront --include=*.sql --include=*.ts --include=*.js)",
+      "Bash(git log:*)"
     ]
   }
 }

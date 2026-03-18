@@ -1,10 +1,21 @@
 import type { NextConfig } from 'next'
 
+// Extraemos el hostname exacto de la URL de Supabase (ej: xyzabc.supabase.co)
+const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : '*.supabase.co'
+
 const nextConfig: NextConfig = {
   images: {
     minimumCacheTTL: 3600, // Cache optimized images for 1 hour to avoid repeated slow fetches
     // Aquí autorizamos los dominios desde los cuales se cargarán las imágenes.
     remotePatterns: [
+      // Supabase Storage — imágenes propias migradas
+      {
+        protocol: 'https',
+        hostname: supabaseHostname,
+        pathname: '/storage/v1/object/public/**',
+      },
       // https://www.winkscrubs.com
       {
         protocol: 'https',
