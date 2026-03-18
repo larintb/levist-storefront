@@ -1,15 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { supabase } from '@/lib/supabase'
+
+const STORAGE_KEY = 'levist_popup_dismissed'
 
 export default function NewsletterPopup() {
   const [visible, setVisible] = useState(false)
   const [email, setEmail] = useState('')
   const [job, setJob] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem('levist_popup_dismissed')
+    const dismissed = localStorage.getItem(STORAGE_KEY)
     if (!dismissed) {
       const t = setTimeout(() => setVisible(true), 3000)
       return () => clearTimeout(t)
@@ -17,14 +22,26 @@ export default function NewsletterPopup() {
   }, [])
 
   function close() {
-    sessionStorage.setItem('levist_popup_dismissed', '1')
+    localStorage.setItem(STORAGE_KEY, '1')
     setVisible(false)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
+
+    const { error: dbError } = await supabase
+      .from('newsletter_subscribers')
+      .insert({ email, job, source: 'own_your_shift_popup' })
+
+    if (dbError && dbError.code !== '23505') {
+      // 23505 = unique violation (already subscribed) — treat as success
+      setError('Hubo un error. Intenta de nuevo.')
+      return
+    }
+
     setSubmitted(true)
-    sessionStorage.setItem('levist_popup_dismissed', '1')
+    localStorage.setItem(STORAGE_KEY, '1')
     setTimeout(close, 2500)
   }
 
@@ -37,11 +54,23 @@ export default function NewsletterPopup() {
     >
       <div className="bg-white w-full max-w-2xl relative flex flex-col md:flex-row overflow-hidden shadow-2xl">
         {/* Image */}
-        <div className="hidden md:block w-1/2 flex-shrink-0">
-          <img
-            src="https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=800&q=80"
-            className="h-full w-full object-cover"
-            alt="LEVIST Uniformes"
+        <div className="hidden md:block w-1/2 flex-shrink-0 relative min-h-[400px] overflow-hidden">
+          {/* Blurred background */}
+          <Image
+            src="/images/test1.png"
+            alt=""
+            fill
+            className="object-cover scale-110 blur-sm brightness-75"
+            unoptimized
+            aria-hidden
+          />
+          {/* Sharp image on top */}
+          <Image
+            src="/images/test1.png"
+            alt="OWN YOUR SHIFT – LEVIST Uniformes"
+            fill
+            className="object-contain"
+            unoptimized
           />
         </div>
 
@@ -61,23 +90,29 @@ export default function NewsletterPopup() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-lg font-black uppercase tracking-tighter">¡Listo! Tu 15% OFF</p>
-              <p className="text-xs text-gray-500">Revisa tu email para tu código de descuento.</p>
+              <p className="text-lg font-black uppercase tracking-tighter">¡Listo! Tu código es</p>
+              <p className="text-2xl font-black tracking-widest text-[#364458]">SHIFT15</p>
+              <p className="text-xs text-gray-500">Revisa tu email para confirmar tu suscripción.</p>
             </div>
           ) : (
             <>
-              <div className="text-4xl font-black italic tracking-tighter mb-2">LEVIST</div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-4">
-                Únete a los Insiders
+              <div className="text-4xl font-black italic tracking-tighter mb-1">LEVIST</div>
+              <h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-1">
+                OWN YOUR SHIFT
               </h2>
-              <p className="text-xs text-gray-600 mb-6 leading-relaxed">
-                Suscríbete hoy y obtén <strong>15% OFF</strong> en tu primer pedido. Acceso exclusivo a nuevos lanzamientos y ofertas.
+              <p className="text-xs text-gray-500 uppercase tracking-widest mb-4">Campaña Exclusiva</p>
+              <p className="text-xs text-gray-600 mb-2 leading-relaxed">
+                Suscríbete y obtén <strong>15% OFF</strong> con el código{' '}
+                <span className="font-black tracking-widest text-[#364458]">SHIFT15</span>.
+              </p>
+              <p className="text-[10px] text-gray-400 mb-6 leading-relaxed border border-gray-200 px-3 py-2 bg-gray-50">
+                * Válido únicamente en colores: <strong>Navy, Negro, Royal y White</strong>.
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <input
                   type="email"
-                  placeholder="ENTRA TU EMAIL"
+                  placeholder="TU EMAIL"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -96,11 +131,15 @@ export default function NewsletterPopup() {
                   <option value="other">Otro</option>
                 </select>
 
+                {error && (
+                  <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest">{error}</p>
+                )}
+
                 <button
                   type="submit"
                   className="w-full bg-[#364458] text-white py-4 font-black uppercase text-xs tracking-widest hover:bg-[#2F3F55] transition-colors mt-2"
                 >
-                  Registrarme
+                  Quiero mi 15% OFF
                 </button>
               </form>
 
