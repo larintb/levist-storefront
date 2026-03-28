@@ -6,6 +6,30 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
   : '*.supabase.co'
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        // Cache the catalog page at Vercel's CDN for 5 minutes
+        source: '/catalogo',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        ],
+      },
+      {
+        // Cache individual product pages for 10 minutes
+        source: '/catalogo/:slug',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=600, stale-while-revalidate=1200',
+          },
+        ],
+      },
+    ]
+  },
   images: {
     unoptimized: true, // Sirve imágenes directamente desde Supabase Storage sin pasar por Vercel optimizer
     // Aquí autorizamos los dominios desde los cuales se cargarán las imágenes.
