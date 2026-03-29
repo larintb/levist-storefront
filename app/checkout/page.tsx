@@ -307,12 +307,14 @@ export default function CheckoutPage() {
                   Ubicación de nuestra tienda
                 </p>
                 <div className="overflow-hidden border border-gray-200">
-                  <iframe
-                    title="Levist Store"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${STORE_LON - 0.007},${STORE_LAT - 0.005},${STORE_LON + 0.007},${STORE_LAT + 0.005}&layer=mapnik&marker=${STORE_LAT},${STORE_LON}`}
-                    width="100%"
-                    height="220"
-                    style={{ border: 0 }}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l-shop+364458(${STORE_LON},${STORE_LAT})/${STORE_LON},${STORE_LAT},15,0/640x280@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
+                    alt="Ubicación Levist Uniformes"
+                    width={640}
+                    height={280}
+                    className="w-full object-cover"
+                    style={{ height: 220 }}
                     loading="lazy"
                   />
                 </div>

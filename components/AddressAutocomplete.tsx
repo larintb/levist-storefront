@@ -9,9 +9,12 @@ export interface ParsedAddress {
 }
 
 interface Suggestion {
-  placeId: string
+  id: string
   mainText: string
   secondaryText: string
+  calle: string
+  colonia: string
+  cp: string
 }
 
 interface Props {
@@ -20,11 +23,38 @@ interface Props {
   onSelect: (parsed: ParsedAddress) => void
 }
 
-function getComponent(
-  components: { longText: string; types: string[] }[],
-  ...types: string[]
-): string {
-  return components.find((c) => types.some((t) => c.types.includes(t)))?.longText ?? ''
+interface MapboxContext {
+  address?:      { street_name?: string; address_number?: string }
+  neighborhood?: { name?: string }
+  locality?:     { name?: string }
+  postcode?:     { name?: string }
+}
+
+interface MapboxFeature {
+  properties: {
+    mapbox_id: string
+    name: string
+    place_formatted: string
+    context: MapboxContext
+  }
+}
+
+function parseFeature(f: MapboxFeature): Suggestion {
+  const ctx = f.properties.context
+  const street  = ctx.address?.street_name ?? ''
+  const number  = ctx.address?.address_number ?? ''
+  const calle   = street && number ? `${street} ${number}` : (street || f.properties.name)
+  const colonia = ctx.neighborhood?.name ?? ctx.locality?.name ?? ''
+  const cp      = ctx.postcode?.name ?? ''
+
+  return {
+    id:            f.properties.mapbox_id,
+    mainText:      f.properties.name,
+    secondaryText: f.properties.place_formatted,
+    calle,
+    colonia,
+    cp,
+  }
 }
 
 export default function AddressAutocomplete({ value, onChange, onSelect }: Props) {
@@ -34,10 +64,10 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
   const [activeIdx, setActiveIdx]     = useState(-1)
   const [error, setError]             = useState('')
 
-  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const listRef     = useRef<HTMLUListElement>(null)
-  const inputRef    = useRef<HTMLInputElement>(null)
+  const listRef      = useRef<HTMLUListElement>(null)
+  const inputRef     = useRef<HTMLInputElement>(null)
 
   // Debounce → fetch suggestions
   useEffect(() => {
@@ -60,24 +90,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
           return
         }
 
-        const items: Suggestion[] = (data.suggestions ?? []).map((s: {
-          placePrediction: {
-            placeId: string
-            text: { text: string }
-            structuredFormat?: {
-              mainText: { text: string }
-              secondaryText?: { text: string }
-            }
-          }
-        }) => ({
-          placeId: s.placePrediction.placeId,
-          mainText:
-            s.placePrediction.structuredFormat?.mainText?.text ??
-            s.placePrediction.text.text,
-          secondaryText:
-            s.placePrediction.structuredFormat?.secondaryText?.text ?? '',
-        }))
-
+        const items: Suggestion[] = (data.features ?? []).map(parseFeature)
         setSuggestions(items)
         setOpen(items.length > 0)
       } catch {
@@ -105,26 +118,11 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
 
-  async function pick(s: Suggestion) {
+  function pick(s: Suggestion) {
     setOpen(false)
     setSuggestions([])
     onChange(s.mainText)
-
-    try {
-      const res  = await fetch(`/api/places?placeId=${s.placeId}`)
-      const data = await res.json()
-      const comps: { longText: string; types: string[] }[] = data.addressComponents ?? []
-
-      const route        = getComponent(comps, 'route')
-      const streetNumber = getComponent(comps, 'street_number')
-      const colonia      = getComponent(comps, 'sublocality_level_1', 'sublocality', 'neighborhood')
-      const cp           = getComponent(comps, 'postal_code')
-      const calle        = [route, streetNumber].filter(Boolean).join(' ') || s.mainText
-
-      onSelect({ calle, colonia, cp })
-    } catch {
-      onSelect({ calle: s.mainText, colonia: '', cp: '' })
-    }
+    onSelect({ calle: s.calle, colonia: s.colonia, cp: s.cp })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -180,7 +178,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
         >
           {suggestions.map((s, i) => (
             <li
-              key={s.placeId}
+              key={s.id}
               onMouseDown={(e) => { e.preventDefault(); pick(s) }}
               onMouseEnter={() => setActiveIdx(i)}
               className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-0 ${
@@ -198,8 +196,9 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
             </li>
           ))}
           <li className="px-3 py-1.5 bg-gray-50 flex justify-end">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3.png" alt="Powered by Google" height={14} style={{ height: 14 }} />
+            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+              © Mapbox © OpenStreetMap
+            </span>
           </li>
         </ul>
       )}
