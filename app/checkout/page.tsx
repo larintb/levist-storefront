@@ -7,6 +7,7 @@ import { getCart, getCartTotal } from '@/lib/cart'
 import type { CartItem } from '@/types/product'
 import DeliveryAddressForm, { formatAddress } from '@/components/DeliveryAddressForm'
 import type { DeliveryAddress } from '@/components/DeliveryAddressForm'
+import StoreMap from '@/components/StoreMap'
 
 type DeliveryMethod = 'pickup' | 'delivery'
 
@@ -306,18 +307,7 @@ export default function CheckoutPage() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">
                   Ubicación de nuestra tienda
                 </p>
-                <div className="overflow-hidden border border-gray-200">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l-shop+364458(${STORE_LON},${STORE_LAT})/${STORE_LON},${STORE_LAT},15,0/640x280@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`}
-                    alt="Ubicación Levist Uniformes"
-                    width={640}
-                    height={280}
-                    className="w-full object-cover"
-                    style={{ height: 220 }}
-                    loading="lazy"
-                  />
-                </div>
+                <StoreMap />
                 <a
                   href={`https://www.google.com/maps?q=${STORE_LAT},${STORE_LON}&z=16&label=${STORE_LABEL}`}
                   target="_blank"

@@ -4,14 +4,14 @@ import { useState, useCallback } from 'react'
 import AddressAutocomplete, { type ParsedAddress } from '@/components/AddressAutocomplete'
 
 export interface DeliveryAddress {
-  calle: string
-  colonia: string
-  cp: string
+  calle:       string
+  colonia:     string
+  cp:          string
   referencias: string
 }
 
 interface Props {
-  value: DeliveryAddress
+  value:    DeliveryAddress
   onChange: (v: DeliveryAddress) => void
 }
 
@@ -24,7 +24,9 @@ function CheckIcon() {
 }
 
 export default function DeliveryAddressForm({ value, onChange }: Props) {
-  const [confirmed, setConfirmed] = useState(false)
+  const [confirmed,          setConfirmed]          = useState(false)
+  // true sólo cuando la colonia vino del autocomplete — si es false, siempre muestra input
+  const [coloniaAutoFilled,  setColoniaAutoFilled]  = useState(false)
 
   const set = useCallback(
     (patch: Partial<DeliveryAddress>) => onChange({ ...value, ...patch }),
@@ -34,11 +36,13 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
   function handleSelect(parsed: ParsedAddress) {
     onChange({ ...value, calle: parsed.calle, colonia: parsed.colonia, cp: parsed.cp })
     setConfirmed(true)
+    setColoniaAutoFilled(!!parsed.colonia)   // bloquear solo si Mapbox trajo colonia
   }
 
   function handleReset() {
     onChange({ calle: '', colonia: '', cp: '', referencias: value.referencias })
     setConfirmed(false)
+    setColoniaAutoFilled(false)
   }
 
   const labelCls = 'block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2'
@@ -86,17 +90,20 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
           {/* Colonia */}
           <div>
             <label className={labelCls}>Colonia *</label>
-            {value.colonia ? (
+            {coloniaAutoFilled ? (
+              /* Mapbox la trajo — mostrar estático con checkmark */
               <div className="flex items-center gap-2 border-b-2 border-gray-200 pb-2">
                 <span className="text-sm font-bold">{value.colonia}</span>
                 <CheckIcon />
               </div>
             ) : (
+              /* No vino del autocomplete — siempre editable hasta enviar */
               <input
                 type="text"
                 value={value.colonia}
                 onChange={(e) => set({ colonia: e.target.value })}
                 placeholder="Ej. Centro"
+                autoFocus
                 className={fieldCls}
               />
             )}
@@ -109,9 +116,7 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
               <div className="flex items-center gap-3 border-b-2 border-gray-200 pb-2">
                 <span className="text-sm font-bold tabular-nums">{value.cp}</span>
                 <CheckIcon />
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  México
-                </span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">México</span>
               </div>
             ) : (
               <input
@@ -125,7 +130,7 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
             )}
           </div>
 
-          {/* 4. Notas */}
+          {/* Notas */}
           <div>
             <label className={labelCls}>
               Notas de entrega
@@ -141,7 +146,6 @@ export default function DeliveryAddressForm({ value, onChange }: Props) {
           </div>
         </>
       )}
-
     </div>
   )
 }

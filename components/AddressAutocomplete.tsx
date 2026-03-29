@@ -3,148 +3,141 @@
 import { useState, useEffect, useRef } from 'react'
 
 export interface ParsedAddress {
-  calle: string
+  calle:   string
   colonia: string
-  cp: string
-}
-
-interface Suggestion {
-  id: string
-  mainText: string
-  secondaryText: string
-  calle: string
-  colonia: string
-  cp: string
+  cp:      string
 }
 
 interface Props {
-  value: string
+  value:    string
   onChange: (value: string) => void
   onSelect: (parsed: ParsedAddress) => void
 }
 
-interface MapboxContext {
-  address?:      { street_name?: string; address_number?: string }
-  neighborhood?: { name?: string }
-  locality?:     { name?: string }
-  postcode?:     { name?: string }
+interface DropdownItem {
+  mapboxId: string
+  label:    string
+  sublabel: string
 }
 
-interface MapboxFeature {
-  properties: {
-    mapbox_id: string
-    name: string
-    place_formatted: string
-    context: MapboxContext
-  }
-}
+// Parsea el feature del retrieve para extraer calle, colonia y CP
+function parseRetrieveFeature(feature: Record<string, unknown>): ParsedAddress {
+  const props   = (feature.properties ?? {}) as Record<string, unknown>
+  const ctx     = (props.context     ?? {}) as Record<string, Record<string, string>>
 
-function parseFeature(f: MapboxFeature): Suggestion {
-  const ctx = f.properties.context
-  const street  = ctx.address?.street_name ?? ''
-  const number  = ctx.address?.address_number ?? ''
-  const calle   = street && number ? `${street} ${number}` : (street || f.properties.name)
-  const colonia = ctx.neighborhood?.name ?? ctx.locality?.name ?? ''
-  const cp      = ctx.postcode?.name ?? ''
+  const streetName   = ctx.address?.street_name   ?? ''
+  const streetNumber = ctx.address?.address_number ?? ''
+  const calle  = streetName && streetNumber
+    ? `${streetName} ${streetNumber}`
+    : streetName || (props.name as string) || ''
 
-  return {
-    id:            f.properties.mapbox_id,
-    mainText:      f.properties.name,
-    secondaryText: f.properties.place_formatted,
-    calle,
-    colonia,
-    cp,
-  }
+  const colonia =
+    ctx.neighborhood?.name ??
+    ctx.locality?.name     ??
+    ctx.district?.name     ??
+    ''
+
+  const cp = ctx.postcode?.name ?? ''
+
+  return { calle, colonia, cp }
 }
 
 export default function AddressAutocomplete({ value, onChange, onSelect }: Props) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [open, setOpen]               = useState(false)
-  const [loading, setLoading]         = useState(false)
-  const [activeIdx, setActiveIdx]     = useState(-1)
-  const [error, setError]             = useState('')
+  const [items,     setItems]     = useState<DropdownItem[]>([])
+  const [open,      setOpen]      = useState(false)
+  const [fetching,  setFetching]  = useState(false)   // suggest en curso
+  const [selecting, setSelecting] = useState(false)   // retrieve en curso
+  const [error,     setError]     = useState('')
+  const [activeIdx, setActiveIdx] = useState(-1)
 
-  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const session      = useRef('')
+  const debounce     = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef      = useRef<HTMLUListElement>(null)
   const inputRef     = useRef<HTMLInputElement>(null)
 
-  // Debounce → fetch suggestions
+  // Generar session token al montar
+  useEffect(() => { session.current = crypto.randomUUID() }, [])
+
+  // Cerrar dropdown al click fuera
   useEffect(() => {
-    setError('')
-    if (value.length < 4) {
-      setSuggestions([])
-      setOpen(false)
-      return
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
     }
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(async () => {
-      setLoading(true)
-      try {
-        const res  = await fetch(`/api/places?input=${encodeURIComponent(value)}`)
-        const data = await res.json()
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
-        if (!res.ok) {
-          setError(data.error ?? 'Error al buscar')
-          setSuggestions([])
-          return
-        }
-
-        const items: Suggestion[] = (data.features ?? []).map(parseFeature)
-        setSuggestions(items)
-        setOpen(items.length > 0)
-      } catch {
-        setError('Error de conexión')
-        setSuggestions([])
-      } finally {
-        setLoading(false)
-      }
-    }, 400)
-  }, [value])
-
-  // Scroll al item activo
+  // Scroll al item activo con teclado
   useEffect(() => {
     if (!listRef.current || activeIdx < 0) return
     ;(listRef.current.children[activeIdx] as HTMLElement | undefined)
       ?.scrollIntoView({ block: 'nearest' })
   }, [activeIdx])
 
-  // Cerrar al click fuera
+  // Debounce → suggest
   useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [])
+    setError('')
+    if (value.length < 4) { setItems([]); setOpen(false); return }
+    if (debounce.current) clearTimeout(debounce.current)
+    debounce.current = setTimeout(async () => {
+      setFetching(true)
+      try {
+        const res  = await fetch(`/api/places?input=${encodeURIComponent(value)}&session=${session.current}`)
+        const data = await res.json() as { suggestions?: Array<{ mapbox_id: string; name: string; place_formatted: string }>; error?: string }
+        if (!res.ok) { setError(data.error ?? 'Error al buscar'); setItems([]); return }
+        const list: DropdownItem[] = (data.suggestions ?? []).map((s) => ({
+          mapboxId: s.mapbox_id,
+          label:    s.name,
+          sublabel: s.place_formatted ?? '',
+        }))
+        setItems(list)
+        setOpen(list.length > 0)
+      } catch {
+        setError('Error de conexión')
+        setItems([])
+      } finally {
+        setFetching(false)
+      }
+    }, 400)
+  }, [value])
 
-  function pick(s: Suggestion) {
+  // Seleccionar item → retrieve para obtener colonia + CP completos
+  async function pick(item: DropdownItem) {
     setOpen(false)
-    setSuggestions([])
-    onChange(s.mainText)
-    onSelect({ calle: s.calle, colonia: s.colonia, cp: s.cp })
+    setItems([])
+    onChange(item.label)
+    setSelecting(true)
+    try {
+      const res  = await fetch(`/api/places?id=${encodeURIComponent(item.mapboxId)}&session=${session.current}`)
+      const data = await res.json() as { features?: Array<Record<string, unknown>>; error?: string }
+      if (!res.ok || !data.features?.length) {
+        // fallback: enviar lo que tenemos sin colonia/cp
+        onSelect({ calle: item.label, colonia: '', cp: '' })
+        return
+      }
+      onSelect(parseRetrieveFeature(data.features[0]))
+    } catch {
+      onSelect({ calle: item.label, colonia: '', cp: '' })
+    } finally {
+      setSelecting(false)
+      // Rotar session token: la sesión termina en el retrieve
+      session.current = crypto.randomUUID()
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (!open) {
-      if (e.key === 'ArrowDown') { setOpen(true); e.preventDefault() }
-      return
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      if (activeIdx >= 0 && suggestions[activeIdx]) pick(suggestions[activeIdx])
-    } else if (e.key === 'Escape') {
-      setOpen(false); setActiveIdx(-1); inputRef.current?.blur()
-    }
+    if (!open) { if (e.key === 'ArrowDown') { setOpen(true); e.preventDefault() } ; return }
+    if      (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, items.length - 1)) }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)) }
+    else if (e.key === 'Enter')     { e.preventDefault(); if (activeIdx >= 0 && items[activeIdx]) pick(items[activeIdx]) }
+    else if (e.key === 'Escape')    { setOpen(false); setActiveIdx(-1); inputRef.current?.blur() }
   }
+
+  const busy = fetching || selecting
 
   return (
     <div ref={containerRef} className="relative">
-
       {/* Input */}
       <div className="relative">
         <input
@@ -152,45 +145,42 @@ export default function AddressAutocomplete({ value, onChange, onSelect }: Props
           type="text"
           value={value}
           autoComplete="off"
-          placeholder="Ej. Calle Morelos 210, Matamoros"
+          placeholder="Ej. Calle Morelos 210"
           onChange={(e) => { onChange(e.target.value); setActiveIdx(-1) }}
-          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onFocus={() => items.length > 0 && setOpen(true)}
           onKeyDown={handleKeyDown}
-          className="w-full border-b-2 border-gray-300 pb-2 pr-20 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors bg-transparent"
+          className="w-full border-b-2 border-gray-300 pb-2 pr-24 text-sm font-bold focus:outline-none focus:border-[#364458] transition-colors bg-transparent"
         />
-        {loading && (
+        {busy && (
           <span className="absolute right-0 top-0 text-[9px] font-black uppercase tracking-widest text-gray-400 animate-pulse">
-            Buscando…
+            {selecting ? 'Cargando…' : 'Buscando…'}
           </span>
         )}
       </div>
 
-      {/* Error */}
-      {error && (
-        <p className="mt-1 text-[10px] font-bold text-red-500">{error}</p>
-      )}
+      {error && <p className="mt-1 text-[10px] font-bold text-red-500">{error}</p>}
 
       {/* Dropdown */}
-      {open && suggestions.length > 0 && (
+      {open && items.length > 0 && (
         <ul
           ref={listRef}
           className="absolute z-50 top-full left-0 right-0 bg-white border border-gray-200 shadow-xl max-h-64 overflow-y-auto mt-1"
         >
-          {suggestions.map((s, i) => (
+          {items.map((item, i) => (
             <li
-              key={s.id}
-              onMouseDown={(e) => { e.preventDefault(); pick(s) }}
+              key={item.mapboxId}
+              onMouseDown={(e) => { e.preventDefault(); pick(item) }}
               onMouseEnter={() => setActiveIdx(i)}
               className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-0 ${
                 i === activeIdx ? 'bg-[#364458] text-white' : 'hover:bg-gray-50'
               }`}
             >
               <p className={`text-[11px] font-bold ${i === activeIdx ? 'text-white' : 'text-gray-900'}`}>
-                {s.mainText}
+                {item.label}
               </p>
-              {s.secondaryText && (
+              {item.sublabel && (
                 <p className={`text-[10px] mt-0.5 ${i === activeIdx ? 'text-gray-300' : 'text-gray-400'}`}>
-                  {s.secondaryText}
+                  {item.sublabel}
                 </p>
               )}
             </li>
