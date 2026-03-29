@@ -19,6 +19,11 @@ const SCRAPER_PATTERNS = [
   /selenium/i,
   /puppeteer/i,
   /playwright/i,
+  /^node-fetch/i,
+  /^undici/i,
+  /^got\//i,
+  /^aiohttp/i,
+  /bot|crawler|spider|crawling/i,
 ]
 
 // Legitimate SEO crawlers — never block these
@@ -31,13 +36,23 @@ function isBot(req: NextRequest): boolean {
   return SCRAPER_PATTERNS.some((p) => p.test(ua))
 }
 
+function hasAnomalousParams(req: NextRequest): boolean {
+  const { searchParams } = req.nextUrl
+  const paramCount = [...searchParams.keys()].length
+  if (paramCount > 5) return true
+  for (const [, v] of searchParams.entries()) {
+    if (v.length > 150) return true
+  }
+  return false
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // ─── Bot protection for public pages ──────────────────────────────────────
   if (pathname.startsWith('/catalogo') || pathname === '/') {
-    if (isBot(req)) {
-      return new NextResponse(null, { status: 429, headers: { 'Retry-After': '60' } })
+    if (isBot(req) || hasAnomalousParams(req)) {
+      return new NextResponse(null, { status: 400 })
     }
   }
 

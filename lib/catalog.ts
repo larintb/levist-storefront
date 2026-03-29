@@ -139,58 +139,82 @@ export function groupRows(rows: FullInventoryRow[]): Product[] {
   return Array.from(productMap.values())
 }
 
-export async function getCatalogProducts(filters: CatalogFilters = {}): Promise<Product[]> {
-  const rows = await fetchRowsWithOOS(filters)
-  const products = groupRows(rows)
+const getCatalogProductsCached = unstable_cache(
+  async (filters: Omit<CatalogFilters, 'sort'>): Promise<Product[]> => {
+    const rows = await fetchRowsWithOOS(filters)
+    return groupRows(rows)
+  },
+  ['catalog-products'],
+  { revalidate: 600, tags: ['catalog'] }
+)
 
-  switch (filters.sort) {
-    case 'name_desc': return products.sort((a, b) => b.product_name.localeCompare(a.product_name))
-    case 'price_asc': return products.sort((a, b) => a.min_price - b.min_price)
-    case 'price_desc': return products.sort((a, b) => b.min_price - a.min_price)
-    default: return products.sort((a, b) => a.product_name.localeCompare(b.product_name))
+export async function getCatalogProducts(filters: CatalogFilters = {}): Promise<Product[]> {
+  const { sort, ...rest } = filters
+  const normalized = {
+    category:   rest.category?.toLowerCase().trim(),
+    color:      rest.color?.toLowerCase().trim(),
+    collection: rest.collection?.toLowerCase().trim(),
+    brand:      rest.brand?.toLowerCase().trim(),
+    search:     rest.search?.toLowerCase().trim(),
+  }
+  const products = await getCatalogProductsCached(normalized)
+  const sorted = [...products]
+  switch (sort) {
+    case 'name_desc': return sorted.sort((a, b) => b.product_name.localeCompare(a.product_name))
+    case 'price_asc': return sorted.sort((a, b) => a.min_price - b.min_price)
+    case 'price_desc': return sorted.sort((a, b) => b.min_price - a.min_price)
+    default: return sorted.sort((a, b) => a.product_name.localeCompare(b.product_name))
   }
 }
 
 // Versión eficiente para home: solo trae los primeros N productos
-export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
-  const supabase = getSupabase()
+export const getFeaturedProducts = unstable_cache(
+  async (limit = 8): Promise<Product[]> => {
+    const supabase = getSupabase()
 
-  // Paso 1: obtener los primeros N product_id únicos (query liviana)
-  const { data: ids } = await supabase
-    .from(VIEW)
-    .select('product_id')
-    .gt('stock', MIN_STOCK)
-    .order('product_name')
-    .limit(limit * 10) // margen para deduplicar
+    // Paso 1: obtener los primeros N product_id únicos (query liviana)
+    const { data: ids } = await supabase
+      .from(VIEW)
+      .select('product_id')
+      .gt('stock', MIN_STOCK)
+      .order('product_name')
+      .limit(limit * 10) // margen para deduplicar
 
-  if (!ids || ids.length === 0) return []
+    if (!ids || ids.length === 0) return []
 
-  const uniqueIds = [...new Set(ids.map((r: { product_id: string }) => r.product_id))].slice(0, limit)
+    const uniqueIds = [...new Set(ids.map((r: { product_id: string }) => r.product_id))].slice(0, limit)
 
-  // Paso 2: traer solo las filas de esos productos
-  const { data, error } = await supabase
-    .from(VIEW)
-    .select('*')
-    .in('product_id', uniqueIds)
-    .gt('stock', MIN_STOCK)
+    // Paso 2: traer solo las filas de esos productos
+    const { data, error } = await supabase
+      .from(VIEW)
+      .select('*')
+      .in('product_id', uniqueIds)
+      .gt('stock', MIN_STOCK)
 
-  if (error || !data) return []
-  return groupRows(data as FullInventoryRow[])
-}
+    if (error || !data) return []
+    return groupRows(data as FullInventoryRow[])
+  },
+  ['featured-products'],
+  { revalidate: 600, tags: ['catalog'] }
+)
 
-export async function getProductById(productId: string): Promise<Product | null> {
-  const supabase = getSupabase()
-  const { data, error } = await supabase
-    .from(VIEW)
-    .select('*')
-    .eq('product_id', productId)
-    .order('color')
+export const getProductById = unstable_cache(
+  async (productId: string): Promise<Product | null> => {
+    const supabase = getSupabase()
+    const { data, error } = await supabase
+      .from(VIEW)
+      .select('*')
+      .eq('product_id', productId)
+      .order('color')
 
-  if (error || !data || data.length === 0) return null
+    if (error || !data || data.length === 0) return null
 
-  const products = groupRows(data as FullInventoryRow[])
-  return products[0] ?? null
-}
+    const products = groupRows(data as FullInventoryRow[])
+    return products[0] ?? null
+  },
+  ['product-by-id'],
+  { revalidate: 600, tags: ['catalog'] }
+)
 
 export const getCategories = unstable_cache(
   async (): Promise<string[]> => {

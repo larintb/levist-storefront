@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { getSupabase } from './supabase'
 import { groupRows } from './catalog'
 import type { Product } from '@/types/product'
@@ -94,7 +95,13 @@ async function getCuratedUniform(): Promise<CurationResult> {
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
+const getCuratedUniformCached = unstable_cache(
+  getCuratedUniform,
+  ['curation-uniform'],
+  { revalidate: 600, tags: ['catalog'] }
+)
+
 export async function getCuration(key: string): Promise<CurationResult | null> {
-  if (key === 'uniform') return getCuratedUniform()
+  if (key === 'uniform') return getCuratedUniformCached()
   return null
 }

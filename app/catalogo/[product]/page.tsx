@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { getProductById, getCatalogProducts } from '@/lib/catalog'
 import ProductPageClient from '@/components/ProductPageClient'
 
-export const revalidate = 300
+export const revalidate = 600
 
 interface PageProps {
   params: Promise<{ product: string }>

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
 }
 
-export const revalidate = 300
+export const revalidate = 600
 
 interface PageProps {
   searchParams: Promise<{ category?: string; color?: string; collection?: string; brand?: string; q?: string; sort?: string }>

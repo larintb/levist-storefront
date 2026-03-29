@@ -9,22 +9,29 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Cache the catalog page at Vercel's CDN for 5 minutes
-        source: '/catalogo',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600',
-          },
-        ],
-      },
-      {
-        // Cache individual product pages for 10 minutes
-        source: '/catalogo/:slug',
+        source: '/',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, s-maxage=600, stale-while-revalidate=1200',
+          },
+        ],
+      },
+      {
+        source: '/catalogo',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=600, stale-while-revalidate=1200',
+          },
+        ],
+      },
+      {
+        source: '/catalogo/:slug',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=1200, stale-while-revalidate=2400',
           },
         ],
       },
