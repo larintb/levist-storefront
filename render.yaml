@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: levist-storefront
+    runtime: node
+    plan: starter
+    buildCommand: npm install --frozen-lockfile && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # ── Las siguientes variables deben configurarse manualmente en el dashboard de Render ──
+      # NEXT_PUBLIC_SUPABASE_URL
+      # NEXT_PUBLIC_SUPABASE_ANON_KEY
+      # NEXT_PUBLIC_MAPBOX_TOKEN
+      # MAPBOX_ACCESS_TOKEN
+      # STRIPE_SECRET_KEY
+      # STRIPE_WEBHOOK_SECRET
+      # NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+      # RESEND_API_KEY
+      # WHAPI_TOKEN
+      # WHAPI_URL
+      # GOOGLE_PLACES_API_KEY  (si aún se usa)
