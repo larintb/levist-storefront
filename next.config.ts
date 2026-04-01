@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
     ]
   },
   images: {
-    unoptimized: true, // Sirve imágenes directamente desde Supabase Storage sin pasar por Vercel optimizer
     // Aquí autorizamos los dominios desde los cuales se cargarán las imágenes.
     remotePatterns: [
       // Supabase Storage — imágenes propias migradas
