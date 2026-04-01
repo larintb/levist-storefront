@@ -5,22 +5,6 @@ import type { FullInventoryRow, Product, CatalogFilters } from '@/types/product'
 const VIEW = 'full_inventory_details'
 const MIN_STOCK = 0 // stock > MIN_STOCK = disponible  (0 → incluye stock = 1)
 
-// Fetch solo productos con stock (para home / featured)
-async function fetchRows(filters: CatalogFilters = {}): Promise<FullInventoryRow[]> {
-  const supabase = getSupabase()
-  let query = supabase.from(VIEW).select('*').gt('stock', MIN_STOCK)
-
-  if (filters.category)   query = query.eq('category', filters.category)
-  if (filters.collection) query = query.eq('collection', filters.collection)
-  if (filters.brand)      query = query.eq('brand', filters.brand)
-  if (filters.color)      query = query.ilike('color', `%${filters.color}%`)
-  if (filters.search)     query = query.or(`product_name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%`)
-
-  const { data, error } = await query.order('product_name')
-  if (error) { console.error('Error fetching inventory:', error); return [] }
-  return (data as FullInventoryRow[]) ?? []
-}
-
 // Fetch para catálogo: incluye variantes OOS del mismo producto
 // Paso 1 — product_ids con stock, Paso 2 — todas las filas de esos productos
 async function fetchRowsWithOOS(filters: CatalogFilters = {}): Promise<FullInventoryRow[]> {
@@ -151,10 +135,10 @@ const getCatalogProductsCached = unstable_cache(
 export async function getCatalogProducts(filters: CatalogFilters = {}): Promise<Product[]> {
   const { sort, ...rest } = filters
   const normalized = {
-    category:   rest.category?.toLowerCase().trim(),
-    color:      rest.color?.toLowerCase().trim(),
-    collection: rest.collection?.toLowerCase().trim(),
-    brand:      rest.brand?.toLowerCase().trim(),
+    category:   rest.category?.trim(),
+    color:      rest.color?.trim(),
+    collection: rest.collection?.trim(),
+    brand:      rest.brand?.trim(),
     search:     rest.search?.toLowerCase().trim(),
   }
   const products = await getCatalogProductsCached(normalized)

@@ -13,15 +13,16 @@ export default function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [mounted, setMounted] = useState(false)
 
+  const refresh = () => setCart(getCart())
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
     setCart(getCart())
     sessionStorage.setItem('cart_visited', '1')
     window.addEventListener('cart-updated', refresh)
     return () => window.removeEventListener('cart-updated', refresh)
   }, [])
-
-  const refresh = () => setCart(getCart())
 
   const fmt = (price: number) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(price)

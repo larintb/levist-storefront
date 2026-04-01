@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getProductById, getCatalogProducts } from '@/lib/catalog'
 import ProductPageClient from '@/components/ProductPageClient'
@@ -53,9 +54,9 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Breadcrumb */}
       <nav className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-8 flex gap-2 flex-wrap">
-        <a href="/" className="hover:text-[#364458] transition-colors">Inicio</a>
+        <Link href="/" className="hover:text-[#364458] transition-colors">Inicio</Link>
         <span>/</span>
-        <a href="/catalogo" className="hover:text-[#364458] transition-colors">Catálogo</a>
+        <Link href="/catalogo" className="hover:text-[#364458] transition-colors">Catálogo</Link>
         <span>/</span>
         <span className="text-black truncate">{product.product_name}</span>
       </nav>

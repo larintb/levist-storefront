@@ -16,6 +16,7 @@ export default function ProductGallery({ variants, selectedVariantKey }: Props) 
   // Sync image when the selected color changes from the parent
   useEffect(() => {
     const variant = variants.find((v) => v.variant_key === selectedVariantKey)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (variant?.image_url) setActiveImage(variant.image_url)
   }, [selectedVariantKey, variants])
 

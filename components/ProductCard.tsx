@@ -43,6 +43,7 @@ export default function ProductCard({ product, activeColor }: Props) {
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
     if (isHovering && cyclable.length > 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCycleIndex(0)
       intervalRef.current = setInterval(() => {
         setCycleIndex(prev => (prev + 1) % cyclable.length)
@@ -51,7 +52,6 @@ export default function ProductCard({ product, activeColor }: Props) {
       setCycleIndex(0)
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHovering, cyclable.length])
 
   const inStockCount = product.variants.filter(v => v.in_stock).length

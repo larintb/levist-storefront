@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useCatalogSearch } from '@/contexts/CatalogSearchContext'
 import type { SortOption } from '@/types/product'
 
 interface FilterItem {
@@ -54,11 +55,15 @@ export default function MobileCatalogControls({
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const { query, setQuery } = useCatalogSearch()
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
   const activeFilterCount = [
     categories.some(i => i.active),
     brands.some(i => i.active),
     collections.some(i => i.active),
     colors.some(i => i.active),
+    !!query.trim(),
   ].filter(Boolean).length
 
   function changeSort(value: string) {
@@ -67,8 +72,6 @@ export default function MobileCatalogControls({
     else params.delete('sort')
     router.push(`/catalogo?${params.toString()}`)
   }
-
-  const currentSortLabel = SORT_OPTIONS.find(o => o.value === currentSort)?.label ?? 'Nombre A → Z'
 
   return (
     <>
@@ -160,6 +163,30 @@ export default function MobileCatalogControls({
 
         {/* Scrollable sections */}
         <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          {/* Search */}
+          <div className="px-5 py-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Buscar</p>
+            <div className="relative">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Nombre del producto..."
+                className="w-full border-b border-gray-300 pb-1 text-xs focus:outline-none focus:border-[#364458] font-bold uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:tracking-normal"
+              />
+              {query && (
+                <button
+                  onClick={() => { setQuery(''); searchInputRef.current?.focus() }}
+                  className="absolute right-0 bottom-1.5 text-gray-400 hover:text-gray-600 text-xs leading-none"
+                  aria-label="Limpiar búsqueda"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+
           {categories.length > 0 && (
             <DrawerSection title="Categoría" items={categories} onSelect={() => setFilterOpen(false)} />
           )}

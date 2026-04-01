@@ -41,6 +41,7 @@ function SuccessContent() {
   const [order,  setOrder]    = useState<OrderData | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!sessionId) { setStatus('error'); return }
 
     fetch(`/api/checkout/verify?session_id=${sessionId}`)

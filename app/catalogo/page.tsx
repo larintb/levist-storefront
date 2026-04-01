@@ -3,11 +3,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getCatalogProducts, getCategories, getColors, getCollections, getBrands } from '@/lib/catalog'
 import { detectCuration, getCuration } from '@/lib/curations'
-import ProductGrid from '@/components/ProductGrid'
 import CuratedGrid from '@/components/CuratedGrid'
+import CatalogProductsView from '@/components/CatalogProductsView'
+import CatalogSearchInput from '@/components/CatalogSearchInput'
 import CollapsibleFilterSection from '@/components/CollapsibleFilterSection'
 import SortSelector from '@/components/SortSelector'
 import MobileCatalogControls from '@/components/MobileCatalogControls'
+import { CatalogSearchProvider } from '@/contexts/CatalogSearchContext'
 import type { CatalogFilters, SortOption } from '@/types/product'
 
 export const metadata: Metadata = {
@@ -44,9 +46,15 @@ function GridSkeleton() {
 
 // ─── Grid de productos (async, en su propio Suspense) ─────────────────────────
 
-async function CatalogResults({ filters }: { filters: CatalogFilters }) {
-  // Detect curated keyword — if matched, render special layout
-  const curationKey = detectCuration(filters.search)
+async function CatalogResults({
+  filters,
+  initialQuery,
+}: {
+  filters: CatalogFilters
+  initialQuery: string
+}) {
+  // Curations use the initial URL query (server-side only, no cache miss risk)
+  const curationKey = detectCuration(initialQuery)
   if (curationKey) {
     const curation = await getCuration(curationKey)
     if (curation && curation.items.length > 0) {
@@ -60,9 +68,9 @@ async function CatalogResults({ filters }: { filters: CatalogFilters }) {
     }
   }
 
-  // Normal catalog results
+  // Products fetched without search — client filters in memory
   const products = await getCatalogProducts(filters)
-  return <ProductGrid products={products} activeColor={filters.color} />
+  return <CatalogProductsView products={products} activeColor={filters.color} />
 }
 
 // ─── Sidebar (async, datos cacheados) ────────────────────────────────────────
@@ -81,7 +89,7 @@ async function CatalogSidebar({
     getBrands(),
   ])
 
-  const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || filters.search)
+  const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand)
 
   return (
     <aside className="hidden lg:block w-48 flex-shrink-0">
@@ -95,23 +103,8 @@ async function CatalogSidebar({
           )}
         </div>
 
-        {/* Search */}
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Buscar</p>
-          <form action="/catalogo" method="GET">
-            {filters.category   && <input type="hidden" name="category"   value={filters.category} />}
-            {filters.color      && <input type="hidden" name="color"      value={filters.color} />}
-            {filters.collection && <input type="hidden" name="collection" value={filters.collection} />}
-            {filters.brand      && <input type="hidden" name="brand"      value={filters.brand} />}
-            <input
-              type="text"
-              name="q"
-              defaultValue={filters.search ?? ''}
-              placeholder="Nombre del producto..."
-              className="w-full border-b border-gray-300 pb-1 text-xs focus:outline-none focus:border-[#364458] font-bold uppercase tracking-wide placeholder:font-normal placeholder:normal-case placeholder:tracking-normal"
-            />
-          </form>
-        </div>
+        {/* Search — client-side, no server round-trip */}
+        <CatalogSearchInput />
 
         {categories.length > 0 && (
           <CollapsibleFilterSection
@@ -182,7 +175,6 @@ async function MobileCatalogControlsServer({
     filters.brand      ? { label: `Marca: ${filters.brand}`,           href: buildUrl(params, 'brand',      undefined) } : null,
     filters.collection ? { label: `Colección: ${filters.collection}`, href: buildUrl(params, 'collection', undefined) } : null,
     filters.color      ? { label: `Color: ${filters.color}`,           href: buildUrl(params, 'color',      undefined) } : null,
-    filters.search     ? { label: `"${filters.search}"`,               href: buildUrl(params, 'q',          undefined) } : null,
   ].filter((f): f is { label: string; href: string } => f !== null)
 
   return (
@@ -220,61 +212,63 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const params = await searchParams
 
   const VALID_SORTS = ['name_asc', 'name_desc', 'price_asc', 'price_desc']
+  // search is intentionally excluded — handled client-side to prevent cache explosion
   const filters: CatalogFilters = {
     category:   params.category,
     color:      params.color,
     collection: params.collection,
     brand:      params.brand,
-    search:     params.q,
     sort:       VALID_SORTS.includes(params.sort ?? '') ? (params.sort as SortOption) : 'name_asc',
   }
 
-  const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || filters.search)
+  const initialQuery = params.q?.trim() ?? ''
+  const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || initialQuery)
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Mobile sticky sort/filter bar */}
-      <Suspense fallback={null}>
-        <MobileCatalogControlsServer filters={filters} params={params} />
-      </Suspense>
+    <CatalogSearchProvider initialQuery={initialQuery}>
+      <div className="max-w-7xl mx-auto">
+        {/* Mobile sticky sort/filter bar */}
+        <Suspense fallback={null}>
+          <MobileCatalogControlsServer filters={filters} params={params} />
+        </Suspense>
 
-      <div className={`px-6 pb-10 lg:pt-10 ${hasFilters ? 'pt-[72px]' : 'pt-[36px]'}`}>
-        {/* Header */}
-        <div className="mb-8 border-b border-gray-100 pb-6">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic">Catálogo</h1>
-            <div className="hidden lg:block">
-              <Suspense fallback={null}>
-                <SortSelector current={filters.sort} />
+        <div className={`px-6 pb-10 lg:pt-10 ${hasFilters ? 'pt-[72px]' : 'pt-[36px]'}`}>
+          {/* Header */}
+          <div className="mb-8 border-b border-gray-100 pb-6">
+            <div className="flex items-center justify-between gap-4">
+              <h1 className="text-4xl font-black tracking-tighter uppercase italic">Catálogo</h1>
+              <div className="hidden lg:block">
+                <Suspense fallback={null}>
+                  <SortSelector current={filters.sort} />
+                </Suspense>
+              </div>
+            </div>
+            {hasFilters && (
+              <div className="hidden lg:flex flex-wrap gap-2 mt-3">
+                {filters.category   && <Chip label={`Categoría: ${filters.category}`}   href={buildUrl(params, 'category',   undefined)} />}
+                {filters.brand      && <Chip label={`Marca: ${filters.brand}`}           href={buildUrl(params, 'brand',      undefined)} />}
+                {filters.collection && <Chip label={`Colección: ${filters.collection}`} href={buildUrl(params, 'collection', undefined)} />}
+                {filters.color      && <Chip label={`Color: ${filters.color}`}           href={buildUrl(params, 'color',      undefined)} />}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-10">
+            {/* Sidebar desktop only — datos cacheados, carga rápido */}
+            <Suspense fallback={<div className="hidden lg:block lg:w-48 flex-shrink-0" />}>
+              <CatalogSidebar filters={filters} params={params} />
+            </Suspense>
+
+            {/* Grid — más pesado, muestra skeleton mientras carga */}
+            <div className="flex-1">
+              <Suspense fallback={<GridSkeleton />}>
+                <CatalogResults filters={filters} initialQuery={initialQuery} />
               </Suspense>
             </div>
           </div>
-          {hasFilters && (
-            <div className="hidden lg:flex flex-wrap gap-2 mt-3">
-              {filters.category   && <Chip label={`Categoría: ${filters.category}`}   href={buildUrl(params, 'category',   undefined)} />}
-              {filters.brand      && <Chip label={`Marca: ${filters.brand}`}           href={buildUrl(params, 'brand',      undefined)} />}
-              {filters.collection && <Chip label={`Colección: ${filters.collection}`} href={buildUrl(params, 'collection', undefined)} />}
-              {filters.color      && <Chip label={`Color: ${filters.color}`}           href={buildUrl(params, 'color',      undefined)} />}
-              {filters.search     && <Chip label={`"${filters.search}"`}               href={buildUrl(params, 'q',         undefined)} />}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-10">
-          {/* Sidebar desktop only — datos cacheados, carga rápido */}
-          <Suspense fallback={<div className="hidden lg:block lg:w-48 flex-shrink-0" />}>
-            <CatalogSidebar filters={filters} params={params} />
-          </Suspense>
-
-          {/* Grid — más pesado, muestra skeleton mientras carga */}
-          <div className="flex-1">
-            <Suspense fallback={<GridSkeleton />}>
-              <CatalogResults filters={filters} />
-            </Suspense>
-          </div>
         </div>
       </div>
-    </div>
+    </CatalogSearchProvider>
   )
 }
 

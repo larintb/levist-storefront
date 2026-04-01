@@ -20,9 +20,11 @@ export default function CartDrawer() {
 
   const refresh = () => setCart(getCart())
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh()
     window.addEventListener('cart-updated', refresh)
     window.addEventListener('storage', refresh)

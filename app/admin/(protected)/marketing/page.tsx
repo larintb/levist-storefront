@@ -38,6 +38,7 @@ export default function MarketingPage() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadContacts() }, [])
 
   async function handleImport() {
@@ -113,6 +114,7 @@ export default function MarketingPage() {
     setWaLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (tab === 'whatsapp') loadWaContacts() }, [tab])
 
   async function handleWaImport() {
