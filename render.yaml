@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: npm install --frozen-lockfile && npm run build
-    startCommand: npm start
+    startCommand: NODE_OPTIONS="--max-old-space-size=400" npm start
     healthCheckPath: /
     envVars:
       - key: NODE_ENV

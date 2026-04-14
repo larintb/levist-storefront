@@ -129,7 +129,7 @@ const getCatalogProductsCached = unstable_cache(
     return groupRows(rows)
   },
   ['catalog-products'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export async function getCatalogProducts(filters: CatalogFilters = {}): Promise<Product[]> {
@@ -179,7 +179,7 @@ export const getFeaturedProducts = unstable_cache(
     return groupRows(data as FullInventoryRow[])
   },
   ['featured-products'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export const getProductById = unstable_cache(
@@ -197,7 +197,7 @@ export const getProductById = unstable_cache(
     return products[0] ?? null
   },
   ['product-by-id'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export const getCategories = unstable_cache(
@@ -209,7 +209,7 @@ export const getCategories = unstable_cache(
     return [...new Set(data.map((r: { category: string }) => r.category).filter(Boolean))] as string[]
   },
   ['categories'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export const getColors = unstable_cache(
@@ -221,7 +221,7 @@ export const getColors = unstable_cache(
     return [...new Set(data.map((r: { color: string }) => r.color).filter(Boolean))] as string[]
   },
   ['colors'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export interface ColorSwatch { color: string; image_url: string | null; in_stock: boolean }
@@ -293,7 +293,7 @@ export const getColorSwatches = unstable_cache(
     })
   },
   ['color-swatches'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export const getCollections = unstable_cache(
@@ -305,7 +305,7 @@ export const getCollections = unstable_cache(
     return [...new Set(data.map((r: { collection: string }) => r.collection).filter(Boolean))] as string[]
   },
   ['collections'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )
 
 export const getBrands = unstable_cache(
@@ -317,5 +317,5 @@ export const getBrands = unstable_cache(
     return [...new Set(data.map((r: { brand: string }) => r.brand).filter(Boolean))] as string[]
   },
   ['brands'],
-  { revalidate: 600, tags: ['catalog'] }
+  { revalidate: 3600, tags: ['catalog'] }
 )

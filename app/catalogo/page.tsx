@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
 }
 
-export const revalidate = 600
+export const revalidate = 3600
 
 interface PageProps {
   searchParams: Promise<{ category?: string; color?: string; collection?: string; brand?: string; q?: string; sort?: string }>
@@ -53,7 +53,6 @@ async function CatalogResults({
   filters: CatalogFilters
   initialQuery: string
 }) {
-  // Curations use the initial URL query (server-side only, no cache miss risk)
   const curationKey = detectCuration(initialQuery)
   if (curationKey) {
     const curation = await getCuration(curationKey)
@@ -68,27 +67,29 @@ async function CatalogResults({
     }
   }
 
-  // Products fetched without search — client filters in memory
   const products = await getCatalogProducts(filters)
   return <CatalogProductsView products={products} activeColor={filters.color} />
 }
 
-// ─── Sidebar (async, datos cacheados) ────────────────────────────────────────
+// ─── Sidebar (sync — recibe datos del page para evitar queries duplicadas) ────
 
-async function CatalogSidebar({
+interface FilterData {
+  categories: string[]
+  colors: string[]
+  collections: string[]
+  brands: string[]
+}
+
+function CatalogSidebar({
   filters,
   params,
+  filterData,
 }: {
   filters: CatalogFilters
   params: Record<string, string | undefined>
+  filterData: FilterData
 }) {
-  const [categories, colors, collections, brands] = await Promise.all([
-    getCategories(),
-    getColors(),
-    getCollections(),
-    getBrands(),
-  ])
-
+  const { categories, colors, collections, brands } = filterData
   const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand)
 
   return (
@@ -103,7 +104,6 @@ async function CatalogSidebar({
           )}
         </div>
 
-        {/* Search — client-side, no server round-trip */}
         <CatalogSearchInput />
 
         {categories.length > 0 && (
@@ -154,21 +154,18 @@ async function CatalogSidebar({
   )
 }
 
-// ─── Mobile controls (server wrapper → client component) ──────────────────────
+// ─── Mobile controls (sync — recibe datos del page) ──────────────────────────
 
-async function MobileCatalogControlsServer({
+function MobileCatalogControlsServer({
   filters,
   params,
+  filterData,
 }: {
   filters: CatalogFilters
   params: Record<string, string | undefined>
+  filterData: FilterData
 }) {
-  const [categories, colors, collections, brands] = await Promise.all([
-    getCategories(),
-    getColors(),
-    getCollections(),
-    getBrands(),
-  ])
+  const { categories, colors, collections, brands } = filterData
 
   const activeFilters: { label: string; href: string }[] = [
     filters.category   ? { label: `Categoría: ${filters.category}`,   href: buildUrl(params, 'category',   undefined) } : null,
@@ -212,7 +209,6 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const params = await searchParams
 
   const VALID_SORTS = ['name_asc', 'name_desc', 'price_asc', 'price_desc']
-  // search is intentionally excluded — handled client-side to prevent cache explosion
   const filters: CatalogFilters = {
     category:   params.category,
     color:      params.color,
@@ -224,13 +220,21 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const initialQuery = params.q?.trim() ?? ''
   const hasFilters = !!(filters.category || filters.color || filters.collection || filters.brand || initialQuery)
 
+  // Fetch filter data ONCE — ambos componentes (sidebar + mobile) usan estos mismos datos.
+  // Antes, cada uno hacía sus propias 4 queries en paralelo (thundering herd en cold start).
+  const [categories, colors, collections, brands] = await Promise.all([
+    getCategories(),
+    getColors(),
+    getCollections(),
+    getBrands(),
+  ])
+  const filterData: FilterData = { categories, colors, collections, brands }
+
   return (
     <CatalogSearchProvider initialQuery={initialQuery}>
       <div className="max-w-7xl mx-auto">
         {/* Mobile sticky sort/filter bar */}
-        <Suspense fallback={null}>
-          <MobileCatalogControlsServer filters={filters} params={params} />
-        </Suspense>
+        <MobileCatalogControlsServer filters={filters} params={params} filterData={filterData} />
 
         <div className={`px-6 pb-10 lg:pt-10 ${hasFilters ? 'pt-[72px]' : 'pt-[36px]'}`}>
           {/* Header */}
@@ -254,12 +258,10 @@ export default async function CatalogPage({ searchParams }: PageProps) {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-10">
-            {/* Sidebar desktop only — datos cacheados, carga rápido */}
-            <Suspense fallback={<div className="hidden lg:block lg:w-48 flex-shrink-0" />}>
-              <CatalogSidebar filters={filters} params={params} />
-            </Suspense>
+            {/* Sidebar desktop — sync, datos ya disponibles */}
+            <CatalogSidebar filters={filters} params={params} filterData={filterData} />
 
-            {/* Grid — más pesado, muestra skeleton mientras carga */}
+            {/* Grid — sigue siendo async/streaming */}
             <div className="flex-1">
               <Suspense fallback={<GridSkeleton />}>
                 <CatalogResults filters={filters} initialQuery={initialQuery} />
@@ -273,7 +275,6 @@ export default async function CatalogPage({ searchParams }: PageProps) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
 
 function Chip({ label, href }: { label: string; href: string }) {
   return (
